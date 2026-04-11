@@ -1,26 +1,69 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PropertyCard from '../components/PropertyCard';
-import { properties, propertyTypes } from '../data/properties';
+import { fetchProperties } from '../services/api';
+import { propertyTypes } from '../data/properties';
+import type { Property } from '../data/properties';
 
 const PropertiesPage = () => {
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'sale' | 'rent'>('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const filtered = useMemo(() => {
-    return properties.filter((p) => {
-      const matchesSearch =
-        !search ||
-        p.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.location.toLowerCase().includes(search.toLowerCase()) ||
-        p.type.toLowerCase().includes(search.toLowerCase());
+  // Initialize filters from URL params
+  const [search, setSearch]       = useState(searchParams.get('search') ?? '');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'SALE' | 'RENT'>(
+    (searchParams.get('status') as 'SALE' | 'RENT') ?? 'all'
+  );
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('propertyType') ?? 'all');
 
-      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
-      const matchesType = typeFilter === 'all' || p.type === typeFilter;
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [error, setError]           = useState('');
 
-      return matchesSearch && matchesStatus && matchesType;
-    });
-  }, [search, statusFilter, typeFilter]);
+  // Debounced search ref
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const loadProperties = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await fetchProperties({
+        search: debouncedSearch || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        propertyType: typeFilter !== 'all' ? typeFilter : undefined,
+        limit: 50,
+      });
+      setProperties(res.data);
+      setTotal(res.meta.total);
+    } catch {
+      setError('No se pudieron cargar las propiedades.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [debouncedSearch, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    loadProperties();
+  }, [loadProperties]);
+
+  // Keep URL params in sync
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (statusFilter !== 'all') params.status = statusFilter;
+    if (typeFilter !== 'all') params.propertyType = typeFilter;
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, statusFilter, typeFilter, setSearchParams]);
+
+  function clearFilters() {
+    setSearch('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -28,13 +71,12 @@ const PropertiesPage = () => {
       <div>
         <h1 className="section-title">Propiedades</h1>
         <p className="section-subtitle mt-1">
-          {filtered.length} propiedad{filtered.length !== 1 ? 'es' : ''} disponible{filtered.length !== 1 ? 's' : ''}
+          {isLoading ? 'Cargando...' : `${total} propiedad${total !== 1 ? 'es' : ''} disponible${total !== 1 ? 's' : ''}`}
         </p>
       </div>
 
       {/* Search and filters */}
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-        {/* Search */}
         <div className="relative flex-grow sm:max-w-md">
           <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
           <input
@@ -46,10 +88,8 @@ const PropertiesPage = () => {
           />
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          {/* Status filter */}
-          {(['all', 'sale', 'rent'] as const).map((s) => (
+          {(['all', 'SALE', 'RENT'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -59,11 +99,10 @@ const PropertiesPage = () => {
                   : 'bg-white text-slate-600 shadow-sm border border-slate-200 hover:bg-slate-50 dark:bg-card-dark dark:border-slate-700 dark:text-slate-300'
               }`}
             >
-              {s === 'all' ? 'Todas' : s === 'sale' ? 'En Venta' : 'Alquiler'}
+              {s === 'all' ? 'Todas' : s === 'SALE' ? 'En Venta' : 'Alquiler'}
             </button>
           ))}
 
-          {/* Type filter dropdown */}
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
@@ -78,27 +117,29 @@ const PropertiesPage = () => {
       </div>
 
       {/* Results */}
-      {filtered.length > 0 ? (
+      {isLoading ? (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <PropertyCard key={p.id} property={p} />
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="card h-72 animate-pulse bg-slate-100 dark:bg-slate-800" />
           ))}
+        </div>
+      ) : error ? (
+        <div className="mt-16 flex flex-col items-center text-center">
+          <span className="material-symbols-outlined text-6xl text-red-300">wifi_off</span>
+          <h3 className="mt-4 font-heading text-lg font-bold text-slate-700 dark:text-slate-300">Error al cargar propiedades</h3>
+          <p className="mt-1 text-sm text-slate-500">{error}</p>
+          <button onClick={loadProperties} className="btn-primary mt-4">Reintentar</button>
+        </div>
+      ) : properties.length > 0 ? (
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
         </div>
       ) : (
         <div className="mt-16 flex flex-col items-center text-center">
           <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600">search_off</span>
-          <h3 className="mt-4 font-heading text-lg font-bold text-slate-700 dark:text-slate-300">
-            No se encontraron propiedades
-          </h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Intenta ajustar los filtros o el término de búsqueda.
-          </p>
-          <button
-            onClick={() => { setSearch(''); setStatusFilter('all'); setTypeFilter('all'); }}
-            className="btn-secondary mt-4"
-          >
-            Limpiar filtros
-          </button>
+          <h3 className="mt-4 font-heading text-lg font-bold text-slate-700 dark:text-slate-300">No se encontraron propiedades</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Intenta ajustar los filtros o el término de búsqueda.</p>
+          <button onClick={clearFilters} className="btn-secondary mt-4">Limpiar filtros</button>
         </div>
       )}
     </div>

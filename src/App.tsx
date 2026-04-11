@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -7,23 +8,29 @@ import PropertyDetailPage from './pages/PropertyDetailPage';
 import BuyingGuidePage from './pages/BuyingGuidePage';
 import FavoritesPage from './pages/FavoritesPage';
 import ContactPage from './pages/ContactPage';
+import ProfilePage from './pages/ProfilePage';
+import PublishPropertyPage from './pages/PublishPropertyPage';
 
 function App() {
   return (
-    <Routes>
-      {/* Auth routes — sin layout principal */}
-      <Route path="/login" element={<LoginPage />} />
+    <AuthProvider>
+      <Routes>
+        {/* Auth routes — sin layout principal */}
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Rutas con layout principal (navbar + footer) */}
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/propiedades" element={<PropertiesPage />} />
-        <Route path="/propiedad/:id" element={<PropertyDetailPage />} />
-        <Route path="/guia-de-compra" element={<BuyingGuidePage />} />
-        <Route path="/favoritos" element={<FavoritesPage />} />
-        <Route path="/contacto" element={<ContactPage />} />
-      </Route>
-    </Routes>
+        {/* Rutas con layout principal (navbar + footer) */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/propiedades" element={<PropertiesPage />} />
+          <Route path="/propiedad/:id" element={<PropertyDetailPage />} />
+          <Route path="/guia-de-compra" element={<BuyingGuidePage />} />
+          <Route path="/favoritos" element={<FavoritesPage />} />
+          <Route path="/contacto" element={<ContactPage />} />
+          <Route path="/perfil" element={<ProfilePage />} />
+          <Route path="/publicar" element={<PublishPropertyPage />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   );
 }
 

@@ -1,0 +1,358 @@
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
+
+// ─── Sección activa ───────────────────────────────────────────────────────────
+type Section = 'info' | 'password' | 'account';
+
+const ProfilePage = () => {
+  const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  const [section, setSection] = useState<Section>('info');
+
+  // ── Info personal ──
+  const [firstName, setFirstName] = useState(user?.firstName ?? '');
+  const [lastName,  setLastName]  = useState(user?.lastName  ?? '');
+  const [phone,     setPhone]     = useState('');
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [infoMsg,     setInfoMsg]     = useState('');
+  const [infoError,   setInfoError]   = useState('');
+
+  // ── Contraseña ──
+  const [currentPwd,  setCurrentPwd]  = useState('');
+  const [newPwd,      setNewPwd]      = useState('');
+  const [confirmPwd,  setConfirmPwd]  = useState('');
+  const [pwdLoading,  setPwdLoading]  = useState(false);
+  const [pwdMsg,      setPwdMsg]      = useState('');
+  const [pwdError,    setPwdError]    = useState('');
+
+  // Redirect if not authenticated
+  if (!authLoading && !isAuthenticated) {
+    navigate('/login');
+    return null;
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  async function handleUpdateInfo(e: React.SyntheticEvent) {
+    e.preventDefault();
+    setInfoMsg(''); setInfoError('');
+    setInfoLoading(true);
+    try {
+      await apiFetch('/api/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ firstName, lastName, ...(phone ? { phone } : {}) }),
+      });
+      setInfoMsg('Perfil actualizado correctamente.');
+    } catch (err: unknown) {
+      setInfoError(err instanceof Error ? err.message : 'Error al actualizar.');
+    } finally {
+      setInfoLoading(false);
+    }
+  }
+
+  async function handleChangePassword(e: React.SyntheticEvent) {
+    e.preventDefault();
+    setPwdMsg(''); setPwdError('');
+    if (newPwd !== confirmPwd) { setPwdError('Las contraseñas nuevas no coinciden.'); return; }
+    if (newPwd.length < 8)     { setPwdError('La contraseña debe tener al menos 8 caracteres.'); return; }
+    setPwdLoading(true);
+    try {
+      await apiFetch('/api/auth/password', {
+        method: 'PATCH',
+        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd, confirmNewPassword: confirmPwd }),
+      });
+      setPwdMsg('Contraseña actualizada. Inicia sesión nuevamente.');
+      setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
+      setTimeout(() => { logout(); navigate('/login'); }, 2000);
+    } catch (err: unknown) {
+      setPwdError(err instanceof Error ? err.message : 'Error al cambiar contraseña.');
+    } finally {
+      setPwdLoading(false);
+    }
+  }
+
+  async function handleLogout() {
+    await logout();
+    navigate('/');
+  }
+
+  // Avatar / initials
+  const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '';
+
+  const sideItems: { id: Section; icon: string; label: string }[] = [
+    { id: 'info',     icon: 'person',       label: 'Información Personal' },
+    { id: 'password', icon: 'lock',         label: 'Cambiar Contraseña' },
+    { id: 'account',  icon: 'manage_accounts', label: 'Mi Cuenta' },
+  ];
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="section-title">Mi Perfil</h1>
+        <p className="section-subtitle mt-1">Gestiona tu información personal y configuración</p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* ── Sidebar ── */}
+        <div className="space-y-3 lg:col-span-1">
+          {/* Avatar card */}
+          <div className="card p-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-600 text-2xl font-bold text-white ring-4 ring-brand-100 dark:ring-brand-900">
+              {user?.avatarUrl
+                ? <img src={user.avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
+                : initials
+              }
+            </div>
+            <p className="mt-3 font-heading text-base font-bold text-slate-900 dark:text-white">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
+            <span className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              user?.role === 'ADMIN'
+                ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                : user?.role === 'AGENT'
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                : 'bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300'
+            }`}>
+              {user?.role === 'ADMIN' ? 'Administrador' : user?.role === 'AGENT' ? 'Agente' : 'Cliente'}
+            </span>
+          </div>
+
+          {/* Nav items */}
+          <nav className="card overflow-hidden p-1.5">
+            {sideItems.map((item) => (
+              <button key={item.id} onClick={() => setSection(item.id)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                  section === item.id
+                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+
+            <hr className="my-1.5 border-slate-100 dark:border-slate-800" />
+
+            <Link to="/favoritos"
+              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+              <span className="material-symbols-outlined text-[18px]">favorite</span>
+              Mis Favoritos
+            </Link>
+
+            <button onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950">
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+              Cerrar Sesión
+            </button>
+          </nav>
+        </div>
+
+        {/* ── Main content ── */}
+        <div className="lg:col-span-3">
+
+          {/* ── Información Personal ── */}
+          {section === 'info' && (
+            <div className="card p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400">
+                  <span className="material-symbols-outlined text-xl">person</span>
+                </div>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Información Personal</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Actualiza tus datos de contacto</p>
+                </div>
+              </div>
+
+              {infoMsg && (
+                <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  {infoMsg}
+                </div>
+              )}
+              {infoError && (
+                <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{infoError}</div>
+              )}
+
+              <form onSubmit={handleUpdateInfo} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Nombre</label>
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="input-field" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Apellido</label>
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="input-field" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Correo electrónico</label>
+                  <input type="email" value={user?.email} disabled className="input-field opacity-60 cursor-not-allowed" />
+                  <p className="mt-1 text-xs text-slate-400">El correo no se puede cambiar.</p>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Teléfono</label>
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809-000-0000" className="input-field" />
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" disabled={infoLoading} className="btn-primary disabled:opacity-60">
+                    {infoLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Guardando...
+                      </span>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-lg">save</span>
+                        Guardar cambios
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── Cambiar Contraseña ── */}
+          {section === 'password' && (
+            <div className="card p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                  <span className="material-symbols-outlined text-xl">lock</span>
+                </div>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Cambiar Contraseña</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Usa una contraseña segura de al menos 8 caracteres</p>
+                </div>
+              </div>
+
+              {pwdMsg && (
+                <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                  <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  {pwdMsg}
+                </div>
+              )}
+              {pwdError && (
+                <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{pwdError}</div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña actual</label>
+                  <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} required placeholder="••••••••" className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Nueva contraseña</label>
+                  <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required placeholder="••••••••" minLength={8} className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Confirmar nueva contraseña</label>
+                  <input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} required placeholder="••••••••" className="input-field" />
+                </div>
+
+                <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                  <p className="font-medium">Requisitos de contraseña:</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
+                    <li>Mínimo 8 caracteres</li>
+                    <li>Al menos una letra mayúscula</li>
+                    <li>Al menos un número</li>
+                  </ul>
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" disabled={pwdLoading} className="btn-primary disabled:opacity-60">
+                    {pwdLoading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Actualizando...
+                      </span>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-lg">lock_reset</span>
+                        Actualizar contraseña
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── Mi Cuenta ── */}
+          {section === 'account' && (
+            <div className="space-y-4">
+              {/* Info de cuenta */}
+              <div className="card p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400">
+                    <span className="material-symbols-outlined text-xl">manage_accounts</span>
+                  </div>
+                  <div>
+                    <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Mi Cuenta</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Detalles y estado de tu cuenta</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { label: 'ID de usuario', value: user?.id ?? '-', icon: 'badge' },
+                    { label: 'Correo electrónico', value: user?.email ?? '-', icon: 'mail' },
+                    { label: 'Tipo de cuenta', value: user?.role === 'ADMIN' ? 'Administrador' : user?.role === 'AGENT' ? 'Agente Inmobiliario' : 'Cliente', icon: 'verified_user' },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-4 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
+                      <span className="material-symbols-outlined text-[18px] text-slate-400">{item.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{item.label}</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Acciones rápidas */}
+              <div className="card p-6">
+                <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white mb-4">Acciones rápidas</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Link to="/favoritos" className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <span className="material-symbols-outlined text-[18px] text-red-400">favorite</span>
+                    Ver mis favoritos
+                  </Link>
+                  <Link to="/propiedades" className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <span className="material-symbols-outlined text-[18px] text-brand-400">search</span>
+                    Buscar propiedades
+                  </Link>
+                  <Link to="/contacto" className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <span className="material-symbols-outlined text-[18px] text-emerald-400">support_agent</span>
+                    Contactar soporte
+                  </Link>
+                  <button onClick={handleLogout} className="flex items-center gap-3 rounded-xl border border-red-200 px-4 py-3 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950">
+                    <span className="material-symbols-outlined text-[18px]">logout</span>
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePage;

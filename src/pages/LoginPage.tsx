@@ -1,10 +1,58 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Form fields
+  const [role, setRole]           = useState<'CLIENT' | 'AGENT'>('CLIENT');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName]   = useState('');
+  const [phone, setPhone]         = useState('');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  function resetFields() {
+    setRole('CLIENT');
+    setFirstName(''); setLastName(''); setPhone('');
+    setEmail(''); setPassword(''); setConfirmPassword('');
+    setError('');
+  }
+
+  async function handleSubmit(e: React.SyntheticEvent) {
+    e.preventDefault();
+    setError('');
+
+    if (!isLogin) {
+      if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return; }
+      if (!/[A-Z]/.test(password)) { setError('La contraseña debe contener al menos una letra mayúscula.'); return; }
+      if (!/[0-9]/.test(password)) { setError('La contraseña debe contener al menos un número.'); return; }
+      if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return; }
+    }
+
+    setIsLoading(true);
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register({ firstName, lastName, email, phone, password, confirmPassword, role });
+      }
+      navigate('/');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Ocurrió un error. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="relative flex min-h-screen w-full flex-col font-display overflow-x-hidden bg-surface-light dark:bg-surface-dark">
@@ -44,7 +92,7 @@ const LoginPage = () => {
             {/* Tab Switch */}
             <div className="mt-6 flex h-11 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
               <button
-                onClick={() => setIsLogin(true)}
+                onClick={() => { setIsLogin(true); resetFields(); }}
                 className={`flex h-full flex-1 items-center justify-center rounded-lg text-sm font-semibold transition-all ${
                   isLogin
                     ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
@@ -54,7 +102,7 @@ const LoginPage = () => {
                 Iniciar Sesión
               </button>
               <button
-                onClick={() => setIsLogin(false)}
+                onClick={() => { setIsLogin(false); resetFields(); }}
                 className={`flex h-full flex-1 items-center justify-center rounded-lg text-sm font-semibold transition-all ${
                   !isLogin
                     ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
@@ -65,126 +113,140 @@ const LoginPage = () => {
               </button>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
             {/* Form */}
-            <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
               {/* Registration fields */}
               {!isLogin && (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Nombre
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Tu nombre"
-                        className="input-field"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Apellido
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Tu apellido"
-                        className="input-field"
-                      />
+                  {/* Role selector */}
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Tipo de cuenta</label>
+                    <div className="flex h-11 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setRole('CLIENT')}
+                        className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold transition-all ${
+                          role === 'CLIENT'
+                            ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
+                            : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base">person</span>
+                        Cliente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole('AGENT')}
+                        className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold transition-all ${
+                          role === 'AGENT'
+                            ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
+                            : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-base">home_work</span>
+                        Agente
+                      </button>
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Nombre</label>
+                      <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Tu nombre" required className="input-field" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Apellido</label>
+                      <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Tu apellido" required className="input-field" />
+                    </div>
+                  </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Teléfono
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="809-000-0000"
-                      className="input-field"
-                    />
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Teléfono</label>
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809-000-0000" className="input-field" />
                   </div>
                 </>
               )}
 
               {/* Email */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Correo electrónico
-                </label>
-                <input
-                  type="email"
-                  placeholder="tuemail@ejemplo.com"
-                  className="input-field"
-                />
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Correo electrónico</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tuemail@ejemplo.com" required className="input-field" />
               </div>
 
-              {/* Password — BUG FIXED:
-                  - Single input with type toggling
-                  - Custom toggle button inside via absolute positioning
-                  - CSS hides native browser password reveal buttons
-              */}
+              {/* Password */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Contraseña
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
+                    required
+                    minLength={8}
                     className="input-field pr-11 [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
-                    style={{ WebkitTextSecurity: showPassword ? 'none' : undefined } as React.CSSProperties}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
-                    tabIndex={-1}
-                  >
-                    <span className="material-symbols-outlined text-xl">
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300" tabIndex={-1}>
+                    <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                   </button>
                 </div>
+                {!isLogin && password.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                    {[
+                      { label: '8+ caracteres', ok: password.length >= 8 },
+                      { label: 'Una mayúscula', ok: /[A-Z]/.test(password) },
+                      { label: 'Un número', ok: /[0-9]/.test(password) },
+                    ].map(({ label, ok }) => (
+                      <span key={label} className={`flex items-center gap-1 text-xs font-medium ${ok ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                        <span className="material-symbols-outlined text-sm">{ok ? 'check_circle' : 'radio_button_unchecked'}</span>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Confirm Password (registration only) */}
+              {/* Confirm Password */}
               {!isLogin && (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Confirmar contraseña
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Confirmar contraseña</label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
+                      required
                       className="input-field pr-11 [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
-                      tabIndex={-1}
-                    >
-                      <span className="material-symbols-outlined text-xl">
-                        {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                      </span>
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-slate-300" tabIndex={-1}>
+                      <span className="material-symbols-outlined text-xl">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span>
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Forgot password */}
               {isLogin && (
                 <div className="text-right">
-                  <a href="#" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">
-                    ¿Olvidaste tu contraseña?
-                  </a>
+                  <a href="#" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">¿Olvidaste tu contraseña?</a>
                 </div>
               )}
 
-              {/* Submit */}
-              <button type="submit" className="btn-primary w-full justify-center py-3.5 text-base">
-                {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+              <button type="submit" disabled={isLoading} className="btn-primary w-full justify-center py-3.5 text-base disabled:opacity-60">
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
+                  </span>
+                ) : (
+                  isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
+                )}
               </button>
             </form>
 
@@ -214,7 +276,6 @@ const LoginPage = () => {
               </button>
             </div>
 
-            {/* Terms */}
             <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
               Al continuar, aceptas nuestros{' '}
               <a className="font-medium text-brand-600 hover:underline dark:text-brand-400" href="#">Términos</a>{' '}y{' '}

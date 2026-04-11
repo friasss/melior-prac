@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const navLinks = [
   { to: '/', label: 'Inicio' },
@@ -9,8 +10,50 @@ const navLinks = [
 ];
 
 const Navbar = () => {
-  const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const location  = useLocation();
+  const navigate  = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const [mobileOpen, setMobileOpen]   = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  async function handleLogout() {
+    setDropdownOpen(false);
+    setMobileOpen(false);
+    await logout();
+    navigate('/');
+  }
+
+  // User avatar: photo or initials
+  const initials = user
+    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    : '';
+
+  const Avatar = ({ size = 'sm' }: { size?: 'sm' | 'lg' }) => {
+    const cls = size === 'lg'
+      ? 'h-10 w-10 text-sm'
+      : 'h-8 w-8 text-xs';
+
+    return user?.avatarUrl ? (
+      <img src={user.avatarUrl} alt={user.firstName} className={`${cls} rounded-full object-cover ring-2 ring-brand-200 dark:ring-brand-800`} />
+    ) : (
+      <div className={`${cls} flex items-center justify-center rounded-full bg-brand-600 font-bold text-white ring-2 ring-brand-200 dark:ring-brand-800`}>
+        {initials}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -29,9 +72,7 @@ const Navbar = () => {
             {navLinks.map((link) => {
               const isActive = location.pathname === link.to;
               return (
-                <Link
-                  key={link.to}
-                  to={link.to}
+                <Link key={link.to} to={link.to}
                   className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
@@ -49,33 +90,118 @@ const Navbar = () => {
             <Link to="/favoritos" className="btn-ghost hidden sm:flex">
               <span className="material-symbols-outlined text-xl">favorite</span>
             </Link>
-            <Link to="/login" className="btn-primary hidden text-sm sm:flex">
-              Iniciar Sesión
-            </Link>
+
+            {isAuthenticated && (user?.role === 'AGENT' || user?.role === 'ADMIN') && (
+              <Link to="/publicar" className="btn-primary hidden text-sm sm:flex gap-1.5">
+                <span className="material-symbols-outlined text-base">add_home</span>
+                Publicar
+              </Link>
+            )}
+
+            {isAuthenticated ? (
+              /* ── Avatar + Dropdown ── */
+              <div className="relative hidden sm:block" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <Avatar />
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 max-w-[120px] truncate">
+                    {user?.firstName}
+                  </span>
+                  <span className="material-symbols-outlined text-[18px] text-slate-400 transition-transform duration-200"
+                    style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                    expand_more
+                  </span>
+                </button>
+
+                {/* Dropdown menu */}
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl dark:border-slate-700 dark:bg-card-dark">
+                    {/* User info */}
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+                      <Avatar size="lg" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {user?.firstName} {user?.lastName}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
+                      </div>
+                    </div>
+
+                    {/* Menu items */}
+                    <div className="py-1.5">
+                      <Link to="/perfil" onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">person</span>
+                        Mi Perfil
+                      </Link>
+                      <Link to="/favoritos" onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">favorite</span>
+                        Mis Favoritos
+                      </Link>
+                      <Link to="/propiedades" onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">search</span>
+                        Buscar Propiedades
+                      </Link>
+                      {(user?.role === 'AGENT' || user?.role === 'ADMIN') && (
+                        <Link to="/publicar" onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-brand-600 transition-colors hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950">
+                          <span className="material-symbols-outlined text-[18px]">add_home</span>
+                          Publicar Propiedad
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className="border-t border-slate-100 py-1.5 dark:border-slate-700">
+                      <button onClick={handleLogout}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950">
+                        <span className="material-symbols-outlined text-[18px]">logout</span>
+                        Cerrar Sesión
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/login" className="btn-primary hidden text-sm sm:flex">
+                Iniciar Sesión
+              </Link>
+            )}
 
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden dark:text-slate-400 dark:hover:bg-slate-800"
             >
-              <span className="material-symbols-outlined">
-                {mobileOpen ? 'close' : 'menu'}
-              </span>
+              <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu Dropdown */}
+        {/* Mobile Menu */}
         {mobileOpen && (
           <div className="border-t border-slate-100 bg-white px-4 pb-4 pt-2 md:hidden dark:border-slate-800 dark:bg-surface-dark">
+            {/* User info mobile */}
+            {isAuthenticated && (
+              <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 mb-3 dark:bg-slate-800">
+                <Avatar size="lg" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
+                </div>
+              </div>
+            )}
+
             <nav className="flex flex-col gap-1">
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.to;
                 return (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    onClick={() => setMobileOpen(false)}
+                  <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)}
                     className={`rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
@@ -86,14 +212,34 @@ const Navbar = () => {
                   </Link>
                 );
               })}
+
               <hr className="my-2 border-slate-100 dark:border-slate-800" />
-              <Link
-                to="/login"
-                onClick={() => setMobileOpen(false)}
-                className="btn-primary justify-center text-sm"
-              >
-                Iniciar Sesión
-              </Link>
+
+              {isAuthenticated ? (
+                <>
+                  <Link to="/perfil" onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+                    <span className="material-symbols-outlined text-[18px]">person</span>
+                    Mi Perfil
+                  </Link>
+                  {(user?.role === 'AGENT' || user?.role === 'ADMIN') && (
+                    <Link to="/publicar" onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950">
+                      <span className="material-symbols-outlined text-[18px]">add_home</span>
+                      Publicar Propiedad
+                    </Link>
+                  )}
+                  <button onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950">
+                    <span className="material-symbols-outlined text-[18px]">logout</span>
+                    Cerrar Sesión
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary justify-center text-sm">
+                  Iniciar Sesión
+                </Link>
+              )}
             </nav>
           </div>
         )}
