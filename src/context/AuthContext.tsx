@@ -11,6 +11,7 @@ import {
   registerUser,
   logoutUser,
   fetchMyProfile,
+  completeOAuthProfile,
   setToken,
   removeToken,
   getToken,
@@ -33,6 +34,8 @@ interface AuthContextValue {
     confirmPassword: string;
     role?: 'CLIENT' | 'AGENT';
   }) => Promise<void>;
+  loginWithOAuth: (accessToken: string, refreshToken: string) => Promise<{ needsProfileCompletion: boolean }>;
+  completeProfile: (data: { firstName: string; lastName: string; phone?: string; role: 'CLIENT' | 'AGENT' }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -53,11 +56,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return;
     }
-    // Validate token by fetching the profile
     fetchMyProfile()
       .then((profile) => setUser(profile))
       .catch(() => removeToken())
       .finally(() => setIsLoading(false));
+  }, []);
+
+  // Listen for avatar updates from ProfilePage
+  useEffect(() => {
+    function onAvatarUpdate() {
+      const stored = localStorage.getItem('melior_user');
+      if (stored) {
+        try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
+      }
+    }
+    window.addEventListener('melior_avatar_updated', onAvatarUpdate);
+    return () => window.removeEventListener('melior_avatar_updated', onAvatarUpdate);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -87,6 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const loginWithOAuth = useCallback(async (accessToken: string, refreshToken: string) => {
+    setToken(accessToken);
+    localStorage.setItem('melior_refresh_token', refreshToken);
+    const profile = await fetchMyProfile();
+    if (profile) {
+      localStorage.setItem('melior_user', JSON.stringify(profile));
+      setUser(profile);
+    }
+    const needsProfileCompletion = !!(profile as any)?.needsProfileCompletion;
+    return { needsProfileCompletion };
+  }, []);
+
+  const completeProfile = useCallback(async (data: { firstName: string; lastName: string; phone?: string; role: 'CLIENT' | 'AGENT' }) => {
+    const updated = await completeOAuthProfile(data);
+    localStorage.setItem('melior_user', JSON.stringify(updated));
+    setUser(updated);
+  }, []);
+
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem('melior_refresh_token') ?? '';
     try {
@@ -106,6 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         register,
+        loginWithOAuth,
+        completeProfile,
         logout,
       }}
     >

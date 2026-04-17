@@ -14,6 +14,9 @@ const PropertiesPage = () => {
     (searchParams.get('status') as 'SALE' | 'RENT') ?? 'all'
   );
   const [typeFilter, setTypeFilter] = useState(searchParams.get('propertyType') ?? 'all');
+  const [minPrice, setMinPrice]     = useState(searchParams.get('minPrice') ?? '');
+  const [maxPrice, setMaxPrice]     = useState(searchParams.get('maxPrice') ?? '');
+  const [sortBy, setSortBy]         = useState(searchParams.get('sort') ?? 'newest');
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [total, setTotal]           = useState(0);
@@ -35,16 +38,23 @@ const PropertiesPage = () => {
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         propertyType: typeFilter !== 'all' ? typeFilter : undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
         limit: 50,
       });
-      setProperties(res.data);
+      // Client-side sort (backend doesn't have sort yet)
+      let sorted = [...res.data];
+      if (sortBy === 'price_asc')  sorted.sort((a, b) => a.price - b.price);
+      if (sortBy === 'price_desc') sorted.sort((a, b) => b.price - a.price);
+      // 'newest' is default order from backend
+      setProperties(sorted);
       setTotal(res.meta.total);
     } catch {
       setError('No se pudieron cargar las propiedades.');
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, statusFilter, typeFilter]);
+  }, [debouncedSearch, statusFilter, typeFilter, minPrice, maxPrice, sortBy]);
 
   useEffect(() => {
     loadProperties();
@@ -63,7 +73,12 @@ const PropertiesPage = () => {
     setSearch('');
     setStatusFilter('all');
     setTypeFilter('all');
+    setMinPrice('');
+    setMaxPrice('');
+    setSortBy('newest');
   }
+
+  const hasActiveFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || minPrice || maxPrice || sortBy !== 'newest';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -114,6 +129,38 @@ const PropertiesPage = () => {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Price range + sort */}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-card-dark">
+          <span className="text-xs text-slate-400">Precio</span>
+          <input
+            type="number" placeholder="Mín" value={minPrice} step={1000} min={0}
+            onChange={e => setMinPrice(e.target.value)}
+            className="w-24 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 dark:text-slate-300"
+          />
+          <span className="text-slate-300">—</span>
+          <input
+            type="number" placeholder="Máx" value={maxPrice} step={1000} min={0}
+            onChange={e => setMaxPrice(e.target.value)}
+            className="w-24 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 dark:text-slate-300"
+          />
+        </div>
+
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+          className="input-field w-auto py-2.5 pr-8 text-sm">
+          <option value="newest">Más recientes</option>
+          <option value="price_asc">Precio: menor a mayor</option>
+          <option value="price_desc">Precio: mayor a menor</option>
+        </select>
+
+        {hasActiveFilters && (
+          <button onClick={clearFilters} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <span className="material-symbols-outlined text-base">filter_alt_off</span>
+            Limpiar
+          </button>
+        )}
       </div>
 
       {/* Results */}

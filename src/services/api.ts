@@ -46,6 +46,13 @@ export async function apiFetch<T>(
   const data = await res.json();
 
   if (!res.ok) {
+    // If the backend sent field-level errors, build a readable message
+    if (data?.errors && typeof data.errors === 'object') {
+      const details = Object.entries(data.errors as Record<string, string[]>)
+        .map(([, msgs]) => msgs.join(', '))
+        .join(' | ');
+      throw new Error(details || data?.message || `Error ${res.status}`);
+    }
     throw new Error(data?.message ?? `Error ${res.status}`);
   }
 
@@ -235,6 +242,19 @@ export async function fetchMyProfile(): Promise<AuthUser | null> {
   }
 }
 
+export async function completeOAuthProfile(data: {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: 'CLIENT' | 'AGENT';
+}): Promise<AuthUser> {
+  const res = await apiFetch<any>('/api/auth/complete-profile', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
 // ─── Favorites ────────────────────────────────────────────────────────────────
 
 export async function fetchFavorites(): Promise<Property[]> {
@@ -277,6 +297,23 @@ export async function submitInquiry(payload: InquiryPayload): Promise<void> {
   });
 }
 
+export interface MyInquiry {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  subject?: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  property?: { id: string; title: string; slug: string } | null;
+}
+
+export async function fetchMyInquiries(): Promise<MyInquiry[]> {
+  const res = await apiFetch<any>('/api/inquiries/mine');
+  return res.data ?? [];
+}
+
 // ─── Propiedades (agente) ─────────────────────────────────────────────────────
 
 export interface CreatePropertyPayload {
@@ -311,12 +348,132 @@ export async function createProperty(payload: CreatePropertyPayload): Promise<st
   return res.data?.id;
 }
 
+export async function addPropertyImageUrls(propertyId: string, urls: string[]): Promise<void> {
+  await apiFetch(`/api/properties/${propertyId}/images/urls`, {
+    method: 'POST',
+    body: JSON.stringify({ urls }),
+  });
+}
+
+export async function replacePropertyImages(propertyId: string, urls: string[]): Promise<void> {
+  await apiFetch(`/api/properties/${propertyId}/images/urls`, {
+    method: 'PUT',
+    body: JSON.stringify({ urls }),
+  });
+}
+
+export async function updateProperty(id: string, payload: Partial<CreatePropertyPayload>): Promise<void> {
+  await apiFetch(`/api/properties/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchMyProperties(): Promise<Property[]> {
-  const res = await apiFetch<any>('/api/properties?limit=50');
-  // Filter by current agent via backend (agentId query not needed, backend filters by auth)
+  const res = await apiFetch<any>('/api/properties/mine');
   return (res.data ?? []).map(mapProperty);
 }
 
 export async function deleteProperty(id: string): Promise<void> {
   await apiFetch(`/api/properties/${id}`, { method: 'DELETE' });
+}
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
+export interface AdminDashboardData {
+  stats: {
+    totalProperties: number;
+    propertiesForSale: number;
+    propertiesForRent: number;
+    totalClients: number;
+    totalAgents: number;
+    totalInquiries: number;
+    pendingAppointments: number;
+  };
+  topFavorited: { id: string; title: string; price: number; currency: string; image: string; favorites: number; views: number }[];
+  topViewed:    { id: string; title: string; price: number; currency: string; image: string; favorites: number; views: number }[];
+  allProperties: {
+    id: string; title: string; price: number; currency: string;
+    status: string; listingStatus: string; propertyType: string;
+    viewCount: number; createdAt: string; image: string;
+    favorites: number; agentName: string;
+  }[];
+  allUsers: {
+    id: string; firstName: string; lastName: string; email: string;
+    phone: string | null; role: string; avatarUrl: string | null;
+    createdAt: string; emailVerified: boolean; isActive: boolean;
+    agentInfo: {
+      company: string | null; rating: number; totalSales: number;
+      isVerified: boolean; yearsExperience: number; propertyCount: number;
+    } | null;
+  }[];
+  recentInquiries: {
+    id: string; firstName: string; lastName: string; email: string;
+    subject?: string; message: string; status: string; createdAt: string;
+  }[];
+}
+
+export async function fetchAdminDashboard(): Promise<AdminDashboardData> {
+  const res = await apiFetch<any>('/api/dashboard/admin');
+  return res.data;
+}
+
+export interface AdminInquiry {
+  id: string; firstName: string; lastName: string; email: string;
+  subject?: string; message: string; status: string; createdAt: string;
+  property?: { id: string; title: string } | null;
+}
+
+export async function fetchAllInquiries(): Promise<AdminInquiry[]> {
+  const res = await apiFetch<any>('/api/inquiries');
+  return res.data ?? [];
+}
+
+export async function deleteInquiry(id: string): Promise<void> {
+  await apiFetch(`/api/inquiries/${id}`, { method: 'DELETE' });
+}
+
+export async function updateInquiryStatus(id: string, status: string): Promise<void> {
+  await apiFetch(`/api/inquiries/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export interface TrafficStats {
+  daily:  { day: string; visits: number }[];
+  hourly: { hour: number; visits: number }[];
+}
+
+export async function fetchTrafficStats(): Promise<TrafficStats> {
+  const res = await apiFetch<any>('/api/analytics/traffic');
+  return res.data;
+}
+
+// ─── Site / Founders ──────────────────────────────────────────────────────────
+
+export interface Founder {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  photo: string | null;
+}
+
+export async function fetchFounders(): Promise<Founder[]> {
+  const res = await apiFetch<any>('/api/site/founders');
+  return res.data ?? [];
+}
+
+export async function updateFounder(
+  id: string,
+  patch: Partial<Pick<Founder, 'name' | 'role' | 'bio' | 'photo'>>
+): Promise<Founder> {
+  const res = await apiFetch<any>(`/api/site/founders/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+  return res.data;
 }

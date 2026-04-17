@@ -187,10 +187,9 @@ export const locations = [
 ];
 
 export function formatPrice(price: number, currency: string, status: 'sale' | 'rent'): string {
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    maximumFractionDigits: 0,
-  }).format(price);
+  const symbols: Record<string, string> = { USD: 'US$', DOP: 'RD$', EUR: '€' };
+  const symbol = symbols[currency] ?? currency;
+  const number = new Intl.NumberFormat('es-DO', { maximumFractionDigits: 0 }).format(price);
+  const formatted = currency === 'EUR' ? `${number} ${symbol}` : `${symbol} ${number}`;
   return status === 'rent' ? `${formatted}/mes` : formatted;
 }

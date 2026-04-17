@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
+import { apiFetch, fetchMyInquiries, fetchMyProperties, type MyInquiry } from '../services/api';
+import type { Property } from '../data/properties';
+import ImageCropModal from '../components/ImageCropModal';
 
 // ─── Sección activa ───────────────────────────────────────────────────────────
-type Section = 'info' | 'password' | 'account';
+type Section = 'info' | 'password' | 'account' | 'inquiries' | 'properties' | 'theme';
 
 const ProfilePage = () => {
   const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const [section, setSection] = useState<Section>('info');
@@ -27,6 +31,60 @@ const ProfilePage = () => {
   const [pwdLoading,  setPwdLoading]  = useState(false);
   const [pwdMsg,      setPwdMsg]      = useState('');
   const [pwdError,    setPwdError]    = useState('');
+
+  // ── Mis Consultas ──
+  const [inquiries, setInquiries]               = useState<MyInquiry[]>([]);
+  const [inquiriesLoading, setInquiriesLoading] = useState(false);
+
+  // ── Mis Propiedades ──
+  const [myProps, setMyProps]               = useState<Property[]>([]);
+  const [myPropsLoading, setMyPropsLoading] = useState(false);
+
+  // ── Avatar upload ──
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMsg, setAvatarMsg]             = useState('');
+  const [cropSrc, setCropSrc]                 = useState<string | null>(null);
+
+  useEffect(() => {
+    if (section === 'inquiries' && inquiries.length === 0) {
+      setInquiriesLoading(true);
+      fetchMyInquiries().then(setInquiries).catch(() => {}).finally(() => setInquiriesLoading(false));
+    }
+    if (section === 'properties' && myProps.length === 0) {
+      setMyPropsLoading(true);
+      fetchMyProperties().then(setMyProps).catch(() => {}).finally(() => setMyPropsLoading(false));
+    }
+  }, [section]);
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+    // reset input so same file can be selected again
+    e.target.value = '';
+  }
+
+  async function handleCropConfirm(croppedDataUrl: string) {
+    setCropSrc(null);
+    setAvatarUploading(true);
+    setAvatarMsg('');
+    try {
+      await apiFetch('/api/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ avatarUrl: croppedDataUrl }),
+      });
+      // Update local user state so navbar reflects immediately
+      localStorage.setItem('melior_user', JSON.stringify({ ...user, avatarUrl: croppedDataUrl }));
+      window.dispatchEvent(new Event('melior_avatar_updated'));
+      setAvatarMsg('Foto de perfil actualizada.');
+    } catch {
+      setAvatarMsg('Error al guardar la foto.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
@@ -88,13 +146,17 @@ const ProfilePage = () => {
   // Avatar / initials
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '';
 
-  const sideItems: { id: Section; icon: string; label: string }[] = [
-    { id: 'info',     icon: 'person',       label: 'Información Personal' },
-    { id: 'password', icon: 'lock',         label: 'Cambiar Contraseña' },
-    { id: 'account',  icon: 'manage_accounts', label: 'Mi Cuenta' },
-  ];
+  const sideItems: { id: Section; icon: string; label: string; agentOnly?: boolean }[] = [
+    { id: 'info',       icon: 'person',          label: 'Información Personal' },
+    { id: 'password',   icon: 'lock',            label: 'Cambiar Contraseña' },
+    { id: 'properties', icon: 'home_work',       label: 'Mis Propiedades', agentOnly: true },
+    { id: 'inquiries',  icon: 'forum',           label: 'Mis Consultas' },
+    { id: 'theme',      icon: 'palette',         label: 'Tema' },
+    { id: 'account',    icon: 'manage_accounts', label: 'Mi Cuenta' },
+  ].filter(item => !item.agentOnly || user?.role === 'AGENT' || user?.role === 'ADMIN');
 
   return (
+    <>
     <div className="mx-auto max-w-5xl px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
       {/* Header */}
       <div className="mb-8">
@@ -107,12 +169,22 @@ const ProfilePage = () => {
         <div className="space-y-3 lg:col-span-1">
           {/* Avatar card */}
           <div className="card p-6 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-600 text-2xl font-bold text-white ring-4 ring-brand-100 dark:ring-brand-900">
-              {user?.avatarUrl
-                ? <img src={user.avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
-                : initials
-              }
+            <div className="relative mx-auto h-20 w-20">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-600 text-2xl font-bold text-white ring-4 ring-brand-100 dark:ring-brand-900 overflow-hidden">
+                {user?.avatarUrl
+                  ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  : initials
+                }
+              </div>
+              <label className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-brand-600 text-white shadow-md transition-colors hover:bg-brand-700">
+                {avatarUploading
+                  ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  : <span className="material-symbols-outlined text-sm">photo_camera</span>
+                }
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              </label>
             </div>
+            {avatarMsg && <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">{avatarMsg}</p>}
             <p className="mt-3 font-heading text-base font-bold text-slate-900 dark:text-white">
               {user?.firstName} {user?.lastName}
             </p>
@@ -292,6 +364,139 @@ const ProfilePage = () => {
             </div>
           )}
 
+          {/* ── Mis Propiedades ── */}
+          {section === 'properties' && (
+            <div className="card p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                    <span className="material-symbols-outlined text-xl">home_work</span>
+                  </div>
+                  <div>
+                    <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Mis Propiedades</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Listings que has publicado</p>
+                  </div>
+                </div>
+                <Link to="/publicar" className="btn-primary text-sm">
+                  <span className="material-symbols-outlined text-base">add</span>
+                  Nueva
+                </Link>
+              </div>
+
+              {myPropsLoading ? (
+                <div className="flex justify-center py-12">
+                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                </div>
+              ) : myProps.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-16 text-center">
+                  <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600">home_work</span>
+                  <p className="font-medium text-slate-500 dark:text-slate-400">No tienes propiedades publicadas todavía.</p>
+                  <Link to="/publicar" className="btn-primary text-sm">Publicar propiedad</Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {myProps.map(prop => (
+                    <div key={prop.id} className="flex items-center gap-4 rounded-2xl border border-slate-100 p-3 dark:border-slate-800">
+                      <div className="h-16 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                        {prop.image
+                          ? <img src={prop.image} alt="" className="h-full w-full object-cover" />
+                          : <div className="flex h-full items-center justify-center"><span className="material-symbols-outlined text-slate-300">home</span></div>
+                        }
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-sm text-slate-900 dark:text-white">{prop.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{prop.location}</p>
+                        <p className="mt-0.5 text-sm font-bold text-brand-600 dark:text-brand-400">
+                          {prop.currency} {prop.price.toLocaleString()}
+                          {prop.status === 'rent' && <span className="text-xs font-normal">/mes</span>}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Link to={`/editar/${prop.id}`}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800">
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                          Editar
+                        </Link>
+                        <Link to={`/propiedad/${prop.id}`}
+                          className="flex items-center gap-1 rounded-lg border border-brand-200 px-2.5 py-1.5 text-xs font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:border-brand-800 dark:text-brand-400">
+                          <span className="material-symbols-outlined text-sm">visibility</span>
+                          Ver
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Mis Consultas ── */}
+          {section === 'inquiries' && (
+            <div className="card p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                  <span className="material-symbols-outlined text-xl">forum</span>
+                </div>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Mis Consultas</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Mensajes que has enviado a través de Melior</p>
+                </div>
+              </div>
+
+              {inquiriesLoading ? (
+                <div className="flex justify-center py-12">
+                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                </div>
+              ) : inquiries.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-16 text-center">
+                  <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600">forum</span>
+                  <p className="font-medium text-slate-500 dark:text-slate-400">No has enviado ninguna consulta todavía.</p>
+                  <Link to="/contacto" className="btn-primary text-sm">Enviar consulta</Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {inquiries.map((inq) => {
+                    const statusColor: Record<string, string> = {
+                      NEW: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+                      IN_PROGRESS: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+                      RESOLVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+                      CLOSED: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+                    };
+                    const statusLabel: Record<string, string> = {
+                      NEW: 'Nueva', IN_PROGRESS: 'En proceso', RESOLVED: 'Resuelta', CLOSED: 'Cerrada',
+                    };
+                    return (
+                      <div key={inq.id} className="rounded-2xl border border-slate-100 p-4 dark:border-slate-800">
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                          <div>
+                            {inq.subject && (
+                              <p className="font-semibold text-slate-900 dark:text-white text-sm">{inq.subject}</p>
+                            )}
+                            {inq.property && (
+                              <Link to={`/propiedad/${inq.property.id}`} className="text-xs text-brand-600 hover:underline dark:text-brand-400">
+                                <span className="material-symbols-outlined text-xs align-middle mr-0.5">home</span>
+                                {inq.property.title}
+                              </Link>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor[inq.status] ?? statusColor.NEW}`}>
+                              {statusLabel[inq.status] ?? inq.status}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(inq.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">{inq.message}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Mi Cuenta ── */}
           {section === 'account' && (
             <div className="space-y-4">
@@ -349,9 +554,74 @@ const ProfilePage = () => {
             </div>
           )}
 
+          {/* ── Tema ── */}
+          {section === 'theme' && (
+            <div className="card p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400">
+                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>palette</span>
+                </div>
+                <div>
+                  <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Tema de la aplicación</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Elige cómo se ve Melior</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {([
+                  { value: 'light',  icon: 'light_mode',   label: 'Claro',     desc: 'Fondo blanco' },
+                  { value: 'dark',   icon: 'dark_mode',    label: 'Oscuro',    desc: 'Fondo negro' },
+                  { value: 'system', icon: 'brightness_auto', label: 'Sistema', desc: 'Según tu dispositivo' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTheme(opt.value)}
+                    className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-6 transition-all ${
+                      theme === opt.value
+                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/40'
+                        : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <span className={`material-symbols-outlined text-3xl ${
+                      theme === opt.value ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'
+                    }`} style={{ fontVariationSettings: "'FILL' 1" }}>{opt.icon}</span>
+                    <div className="text-center">
+                      <p className={`text-sm font-semibold ${
+                        theme === opt.value ? 'text-brand-700 dark:text-brand-300' : 'text-slate-700 dark:text-slate-300'
+                      }`}>{opt.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{opt.desc}</p>
+                    </div>
+                    {theme === opt.value && (
+                      <span className="material-symbols-outlined text-base text-brand-600 dark:text-brand-400" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {user?.role === 'ADMIN' && (
+                <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                  <span className="material-symbols-outlined text-sm align-middle mr-1">info</span>
+                  El panel de administración siempre se muestra en modo oscuro, independientemente de esta configuración.
+                </p>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </div>
+
+    {/* Avatar crop modal */}
+    {cropSrc && (
+      <ImageCropModal
+        src={cropSrc}
+        shape="circle"
+        outputSize={400}
+        onConfirm={handleCropConfirm}
+        onClose={() => setCropSrc(null)}
+      />
+    )}
+    </>
   );
 };
 

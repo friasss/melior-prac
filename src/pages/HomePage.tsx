@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import PropertyCard from '../components/PropertyCard';
 import { fetchFeaturedProperties, fetchProperties } from '../services/api';
 import type { Property } from '../data/properties';
+import FoundersSection from '../components/FoundersSection';
 
 const stats = [
   { value: '500+', label: 'Propiedades' },
@@ -230,6 +231,8 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      <FoundersSection />
     </div>
   );
 };
