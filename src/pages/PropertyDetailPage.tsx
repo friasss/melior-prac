@@ -197,7 +197,7 @@ const PropertyDetailPage = () => {
             </div>
 
             {/* Specs */}
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
+            <div className="flex flex-wrap gap-3">
               {[
                 { icon: 'bed',        label: `${property.beds} Habitaciones` },
                 { icon: 'shower',     label: `${property.baths} Baños` },

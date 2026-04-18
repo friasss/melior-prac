@@ -226,7 +226,7 @@ export default function PublishPropertyPage() {
                 <label className="label-field">Descripción</label>
                 <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Describe la propiedad con detalle… (mín. 20 caracteres)" required minLength={20} className="input-field resize-none" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="label-field">Tipo de propiedad</label>
                   <select value={propertyType} onChange={e => setPropertyType(e.target.value)} className="input-field">
@@ -252,8 +252,8 @@ export default function PublishPropertyPage() {
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="col-span-2 sm:col-span-2">
                   <label className="label-field">Precio</label>
                   <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="250000" required min={1} className="input-field" />
                 </div>
@@ -277,7 +277,7 @@ export default function PublishPropertyPage() {
           {/* ── Step 2 ── */}
           {step === 2 && (
             <div className="card p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div><label className="label-field">Habitaciones</label><input type="number" value={beds} onChange={e => setBeds(e.target.value)} placeholder="3" min={0} className="input-field" /></div>
                 <div><label className="label-field">Baños</label><input type="number" value={baths} onChange={e => setBaths(e.target.value)} placeholder="2" min={0} className="input-field" /></div>
                 <div><label className="label-field">Área (m²)</label><input type="number" value={size} onChange={e => setSize(e.target.value)} placeholder="120" min={1} required className="input-field" /></div>
@@ -314,7 +314,7 @@ export default function PublishPropertyPage() {
           {/* ── Step 3 ── */}
           {step === 3 && (
             <div className="card p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div><label className="label-field">Ciudad *</label><input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="Santo Domingo" required className="input-field" /></div>
                 <div><label className="label-field">Sector / Barrio</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value)} placeholder="Piantini" className="input-field" /></div>
               </div>
@@ -380,7 +380,7 @@ export default function PublishPropertyPage() {
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     Arrastra para cambiar el orden · la primera es la foto principal
                   </p>
-                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {images.map((src, i) => (
                       <div
                         key={i}
