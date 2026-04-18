@@ -146,14 +146,15 @@ const ProfilePage = () => {
   // Avatar / initials
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '';
 
-  const sideItems: { id: Section; icon: string; label: string; agentOnly?: boolean }[] = [
-    { id: 'info',       icon: 'person',          label: 'Información Personal' },
-    { id: 'password',   icon: 'lock',            label: 'Cambiar Contraseña' },
-    { id: 'properties', icon: 'home_work',       label: 'Mis Propiedades', agentOnly: true },
-    { id: 'inquiries',  icon: 'forum',           label: 'Mis Consultas' },
-    { id: 'theme',      icon: 'palette',         label: 'Tema' },
-    { id: 'account',    icon: 'manage_accounts', label: 'Mi Cuenta' },
-  ].filter(item => !item.agentOnly || user?.role === 'AGENT' || user?.role === 'ADMIN');
+  const sideItems = ([
+    { id: 'info'       as Section, icon: 'person',          label: 'Información Personal' },
+    { id: 'password'   as Section, icon: 'lock',            label: 'Cambiar Contraseña' },
+    { id: 'properties' as Section, icon: 'home_work',       label: 'Mis Propiedades', agentOnly: true },
+    { id: 'inquiries'  as Section, icon: 'forum',           label: 'Mis Consultas' },
+    { id: 'theme'      as Section, icon: 'palette',         label: 'Tema' },
+    { id: 'account'    as Section, icon: 'manage_accounts', label: 'Mi Cuenta' },
+  ] as { id: Section; icon: string; label: string; agentOnly?: boolean }[])
+    .filter(item => !item.agentOnly || user?.role === 'AGENT' || user?.role === 'ADMIN');
 
   return (
     <>
