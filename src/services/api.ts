@@ -255,6 +255,11 @@ export async function completeOAuthProfile(data: {
   return res.data;
 }
 
+export async function upgradeToAgent(): Promise<{ user: AuthUser; accessToken: string; refreshToken: string }> {
+  const res = await apiFetch<any>('/api/auth/upgrade-to-agent', { method: 'POST' });
+  return res.data;
+}
+
 // ─── Favorites ────────────────────────────────────────────────────────────────
 
 export async function fetchFavorites(): Promise<Property[]> {

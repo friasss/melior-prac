@@ -12,6 +12,7 @@ import {
   logoutUser,
   fetchMyProfile,
   completeOAuthProfile,
+  upgradeToAgent as apiUpgradeToAgent,
   setToken,
   removeToken,
   getToken,
@@ -36,6 +37,7 @@ interface AuthContextValue {
   }) => Promise<void>;
   loginWithOAuth: (accessToken: string, refreshToken: string) => Promise<{ needsProfileCompletion: boolean }>;
   completeProfile: (data: { firstName: string; lastName: string; phone?: string; role: 'CLIENT' | 'AGENT' }) => Promise<void>;
+  upgradeToAgent: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -119,6 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
   }, []);
 
+  const upgradeToAgent = useCallback(async () => {
+    const result = await apiUpgradeToAgent();
+    setToken(result.accessToken);
+    localStorage.setItem('melior_refresh_token', result.refreshToken);
+    localStorage.setItem('melior_user', JSON.stringify(result.user));
+    setUser(result.user);
+  }, []);
+
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem('melior_refresh_token') ?? '';
     try {
@@ -140,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         loginWithOAuth,
         completeProfile,
+        upgradeToAgent,
         logout,
       }}
     >

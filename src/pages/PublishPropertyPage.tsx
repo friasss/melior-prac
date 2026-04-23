@@ -4,6 +4,66 @@ import { useAuth } from '../context/AuthContext';
 import { createProperty, addPropertyImageUrls, type CreatePropertyPayload } from '../services/api';
 import ImageCropModal from '../components/ImageCropModal';
 
+function UpgradeToAgentScreen() {
+  const { upgradeToAgent } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  async function handleUpgrade() {
+    setLoading(true);
+    setError('');
+    try {
+      await upgradeToAgent();
+      setDone(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Ocurrió un error. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (done) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-950">
+        <span className="material-symbols-outlined text-4xl text-green-600" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+      </div>
+      <h2 className="font-heading text-xl font-bold text-slate-900 dark:text-white">¡Cuenta actualizada!</h2>
+      <p className="max-w-sm text-center text-slate-500 dark:text-slate-400">Tu cuenta ahora es de Agente. Ya puedes publicar propiedades.</p>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 dark:bg-brand-950">
+        <span className="material-symbols-outlined text-5xl text-brand-600">badge</span>
+      </div>
+      <div className="text-center">
+        <h2 className="font-heading text-2xl font-bold text-slate-900 dark:text-white">¿Quieres publicar propiedades?</h2>
+        <p className="mt-2 max-w-sm text-slate-500 dark:text-slate-400">
+          Para publicar propiedades necesitas una <strong className="text-slate-700 dark:text-slate-300">cuenta de Agente</strong>.
+          ¿Deseas cambiar tu cuenta actual a cuenta de Agente?
+        </p>
+      </div>
+      {error && (
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{error}</div>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button onClick={handleUpgrade} disabled={loading} className="btn-primary min-w-[180px] justify-center">
+          {loading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          ) : (
+            <><span className="material-symbols-outlined text-base">upgrade</span> Cambiar a Agente</>
+          )}
+        </button>
+      </div>
+      <p className="max-w-xs text-center text-xs text-slate-400 dark:text-slate-500">
+        Al confirmar, tu rol cambiará a Agente y podrás publicar, gestionar y administrar propiedades en Melior.
+      </p>
+    </div>
+  );
+}
+
 const PROPERTY_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'LAND', 'COMMERCIAL', 'OFFICE'];
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   APARTMENT: 'Apartamento', HOUSE: 'Casa', VILLA: 'Villa',
@@ -160,16 +220,7 @@ export default function PublishPropertyPage() {
     </div>
   );
 
-  if (user?.role === 'CLIENT') return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
-      <span className="material-symbols-outlined text-5xl text-amber-500">badge</span>
-      <h2 className="font-heading text-xl font-bold text-slate-900 dark:text-white">Cuenta de Agente requerida</h2>
-      <p className="max-w-sm text-center text-slate-500 dark:text-slate-400">
-        Solo los agentes pueden publicar propiedades. Regístrate seleccionando el tipo <strong>Agente</strong>.
-      </p>
-      <button onClick={() => navigate('/login')} className="btn-primary">Crear cuenta Agente</button>
-    </div>
-  );
+  if (user?.role === 'CLIENT') return <UpgradeToAgentScreen />;
 
   if (success) return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">

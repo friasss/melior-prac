@@ -50,7 +50,7 @@ const PropertyCard = ({ property, variant = 'default' }: PropertyCardProps) => {
       className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-card-dark"
     >
       {/* ── Image container ── */}
-      <div className="relative h-52 w-full overflow-hidden">
+      <div className={`relative w-full overflow-hidden ${isFeatured ? 'h-64 sm:h-72' : 'h-52'}`}>
         <img
           src={imgError || !property.image ? fallback : property.image}
           alt={property.title}
