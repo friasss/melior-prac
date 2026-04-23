@@ -57,6 +57,7 @@ export default function AdminPage() {
   const [propSearch, setPropSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [inqSearch, setInqSearch] = useState('');
+  const [viewUser, setViewUser] = useState<NonNullable<AdminDashboardData>['allUsers'][0] | null>(null);
 
   // Force dark mode while on this page; restore user's theme on exit
   const { isDark } = useTheme();
@@ -408,7 +409,7 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800">
-                      {['Usuario', 'Contacto', 'Rol', 'Info agente', 'Estado', 'Registrado'].map(h => (
+                      {['Usuario', 'Contacto', 'Rol', 'Info agente', 'Estado', 'Registrado', ''].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">{h}</th>
                       ))}
                     </tr>
@@ -466,6 +467,13 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-xs">
                           {new Date(u.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => setViewUser(u)}
+                            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950">
+                            <span className="material-symbols-outlined text-sm">open_in_new</span>
+                            Ver
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -636,6 +644,97 @@ export default function AdminPage() {
 
       </div>
     </div>
+
+    {/* ── User profile modal ── */}
+    {viewUser && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setViewUser(null)}>
+        <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-card-dark shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          {/* Header gradient */}
+          <div className="h-24 bg-gradient-to-r from-brand-600 to-brand-800" />
+          <button onClick={() => setViewUser(null)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white hover:bg-black/40">
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+
+          {/* Avatar */}
+          <div className="relative -mt-12 flex justify-center">
+            {viewUser.avatarUrl ? (
+              <img src={viewUser.avatarUrl} alt="" className="h-24 w-24 rounded-full object-cover ring-4 ring-white dark:ring-card-dark shadow-lg" />
+            ) : (
+              <div className={`flex h-24 w-24 items-center justify-center rounded-full ring-4 ring-white dark:ring-card-dark shadow-lg text-2xl font-bold text-white ${
+                viewUser.role === 'ADMIN' ? 'bg-red-500' : viewUser.role === 'AGENT' ? 'bg-amber-500' : 'bg-brand-600'
+              }`}>
+                {viewUser.firstName[0]}{viewUser.lastName[0]}
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="px-6 pb-6 pt-3 space-y-4">
+            <div className="text-center">
+              <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-white">{viewUser.firstName} {viewUser.lastName}</h3>
+              <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-xs font-semibold ${ROLE_COLORS[viewUser.role] ?? ''}`}>
+                {viewUser.role === 'ADMIN' ? 'Administrador' : viewUser.role === 'AGENT' ? 'Agente' : 'Cliente'}
+              </span>
+            </div>
+
+            <div className="space-y-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-slate-400 flex-shrink-0">mail</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300 break-all">{viewUser.email}</span>
+                {viewUser.emailVerified && <span className="material-symbols-outlined text-sm text-green-500 flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>}
+              </div>
+              {viewUser.phone && (
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[18px] text-slate-400 flex-shrink-0">phone</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{viewUser.phone}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-slate-400 flex-shrink-0">calendar_today</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  Registrado {new Date(viewUser.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`material-symbols-outlined text-[18px] flex-shrink-0 ${viewUser.isActive ? 'text-green-500' : 'text-red-400'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                  {viewUser.isActive ? 'check_circle' : 'block'}
+                </span>
+                <span className={`text-sm ${viewUser.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                  Cuenta {viewUser.isActive ? 'activa' : 'inactiva'}
+                </span>
+              </div>
+            </div>
+
+            {viewUser.agentInfo && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4 space-y-2">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Información de Agente</p>
+                {viewUser.agentInfo.company && (
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-amber-500">business</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{viewUser.agentInfo.company}</span>
+                    {viewUser.agentInfo.isVerified && <span className="material-symbols-outlined text-sm text-green-500" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>}
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div className="text-center rounded-lg bg-white dark:bg-slate-800 p-2">
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{viewUser.agentInfo.propertyCount}</p>
+                    <p className="text-[10px] text-slate-400">Propiedades</p>
+                  </div>
+                  <div className="text-center rounded-lg bg-white dark:bg-slate-800 p-2">
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{viewUser.agentInfo.rating.toFixed(1)}</p>
+                    <p className="text-[10px] text-slate-400">Rating ⭐</p>
+                  </div>
+                  <div className="text-center rounded-lg bg-white dark:bg-slate-800 p-2">
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{viewUser.agentInfo.totalSales}</p>
+                    <p className="text-[10px] text-slate-400">Ventas</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Founder photo crop modal */}
     {founderCropSrc && editingFounder && (

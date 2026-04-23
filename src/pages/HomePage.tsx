@@ -4,6 +4,7 @@ import PropertyCard from '../components/PropertyCard';
 import { fetchFeaturedProperties, fetchProperties } from '../services/api';
 import type { Property } from '../data/properties';
 import FoundersSection from '../components/FoundersSection';
+import { useAuth } from '../context/AuthContext';
 
 const stats = [
   { value: '500+', label: 'Propiedades' },
@@ -28,6 +29,7 @@ const testimonials = [
 ];
 
 const HomePage = () => {
+  const { user, isAuthenticated } = useAuth();
   const [featured, setFeatured]   = useState<Property[]>([]);
   const [latest, setLatest]       = useState<Property[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
@@ -109,6 +111,26 @@ const HomePage = () => {
           ))}
         </div>
       </section>
+
+      {/* ═══════════════════════ AGENT CTA (CLIENT only) ═══════════════════════ */}
+      {isAuthenticated && user?.role === 'CLIENT' && (
+        <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-600 to-brand-800 px-6 py-8 sm:px-10 sm:py-10">
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1200")', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-200">Para propietarios</p>
+                <h3 className="mt-1 font-heading text-2xl font-extrabold text-white sm:text-3xl">¿Tienes una propiedad para vender o alquilar?</h3>
+                <p className="mt-2 max-w-lg text-sm text-brand-100">Conviértete en agente Melior y publica tu propiedad para llegar a miles de compradores en República Dominicana.</p>
+              </div>
+              <Link to="/publicar" className="flex-shrink-0 flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-brand-700 shadow-lg transition-all hover:bg-brand-50 hover:shadow-xl whitespace-nowrap">
+                <span className="material-symbols-outlined text-xl">add_home</span>
+                Publicar propiedad
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ═══════════════════════ FEATURED ═══════════════════════ */}
       <section className="mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
