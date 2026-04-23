@@ -122,6 +122,7 @@ export interface AuthUser {
   lastName: string;
   role: 'CLIENT' | 'AGENT' | 'ADMIN';
   avatarUrl: string | null;
+  emailVerified?: boolean;
 }
 
 // ─── Properties ───────────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import PublishPropertyPage from './pages/PublishPropertyPage';
 import EditPropertyPage from './pages/EditPropertyPage';
 import AdminPage from './pages/AdminPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         {/* Auth routes — sin layout principal */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
+        <Route path="/verificar-email" element={<VerifyEmailPage />} />
 
         {/* Rutas con layout principal (navbar + footer) */}
         <Route element={<MainLayout />}>
