@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchAdminDashboard, fetchAllInquiries, deleteInquiry, deleteProperty,
-  updateInquiryStatus, fetchTrafficStats, fetchFounders, updateFounder,
+  updateInquiryStatus, fetchTrafficStats, fetchFounders, updateFounder, updateProperty,
   type AdminDashboardData, type AdminInquiry, type TrafficStats, type Founder,
 } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [fetchError, setFetchError] = useState('');
   const [deletingProp, setDeletingProp] = useState<string | null>(null);
   const [deletingInq, setDeletingInq] = useState<string | null>(null);
+  const [togglingFeatured, setTogglingFeatured] = useState<string | null>(null);
   const [propSearch, setPropSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [inqSearch, setInqSearch] = useState('');
@@ -89,6 +90,17 @@ export default function AdminPage() {
       await deleteProperty(id);
       setData(prev => prev ? { ...prev, allProperties: prev.allProperties.filter(p => p.id !== id) } : prev);
     } finally { setDeletingProp(null); }
+  }
+
+  async function handleToggleFeatured(id: string, current: boolean) {
+    setTogglingFeatured(id);
+    try {
+      await updateProperty(id, { isFeatured: !current });
+      setData(prev => prev ? {
+        ...prev,
+        allProperties: prev.allProperties.map(p => p.id === id ? { ...p, isFeatured: !current } : p),
+      } : prev);
+    } finally { setTogglingFeatured(null); }
   }
 
   async function handleSaveFounder() {
@@ -333,7 +345,7 @@ export default function AdminPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-800">
-                      {['Propiedad', 'Agente', 'Tipo', 'Estado', 'Precio', 'Vistas', 'Favoritos', ''].map(h => (
+                      {['Propiedad', 'Agente', 'Tipo', 'Estado', 'Precio', 'Vistas', 'Favoritos', 'Dest.', ''].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">{h}</th>
                       ))}
                     </tr>
@@ -359,6 +371,21 @@ export default function AdminPage() {
                         <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{fmt(p.price, p.currency)}</td>
                         <td className="px-4 py-3 text-slate-500">{p.viewCount}</td>
                         <td className="px-4 py-3 text-slate-500">{p.favorites}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleToggleFeatured(p.id, p.isFeatured)}
+                            disabled={togglingFeatured === p.id}
+                            title={p.isFeatured ? 'Quitar de destacados' : 'Marcar como destacado'}
+                            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors disabled:opacity-40 ${
+                              p.isFeatured
+                                ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950'
+                                : 'text-slate-400 hover:bg-amber-50 hover:text-amber-500 dark:hover:bg-amber-950'
+                            }`}>
+                            {togglingFeatured === p.id
+                              ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+                              : <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: p.isFeatured ? "'FILL' 1" : "'FILL' 0" }}>star</span>}
+                          </button>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <button onClick={() => navigate(`/propiedad/${p.id}`)} title="Ver"

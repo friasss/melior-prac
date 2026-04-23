@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { requestPasswordReset, resetPasswordWithCode } from '../services/api';
@@ -42,6 +42,13 @@ const LoginPage = () => {
   const [fpLoading, setFpLoading]     = useState(false);
   const [fpError, setFpError]         = useState('');
   const [fpSuccess, setFpSuccess]     = useState(false);
+  const [fpResendCooldown, setFpResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (fpResendCooldown <= 0) return;
+    const t = setTimeout(() => setFpResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [fpResendCooldown]);
 
   function resetFields() {
     setRole('CLIENT');
@@ -57,8 +64,20 @@ const LoginPage = () => {
     try {
       await requestPasswordReset(fpEmail);
       setFpStep('code');
+      setFpResendCooldown(30);
     } catch (err: unknown) {
       setFpError(err instanceof Error ? err.message : 'Error al enviar');
+    } finally { setFpLoading(false); }
+  }
+
+  async function handleFpResend() {
+    setFpError('');
+    setFpLoading(true);
+    try {
+      await requestPasswordReset(fpEmail);
+      setFpResendCooldown(30);
+    } catch (err: unknown) {
+      setFpError(err instanceof Error ? err.message : 'Error al reenviar');
     } finally { setFpLoading(false); }
   }
 
@@ -199,7 +218,9 @@ const LoginPage = () => {
                         <input type="password" value={fpConfirm} onChange={e => setFpConfirm(e.target.value)} required placeholder="••••••••" className="input-field" />
                       </div>
                       <div className="flex gap-3 pt-1">
-                        <button type="button" onClick={() => setFpStep('email')} className="btn-secondary flex-1 justify-center text-sm">Reenviar código</button>
+                        <button type="button" onClick={handleFpResend} disabled={fpResendCooldown > 0 || fpLoading} className="btn-secondary flex-1 justify-center text-sm disabled:opacity-60">
+                          {fpResendCooldown > 0 ? `Reenviar (${fpResendCooldown}s)` : 'Reenviar código'}
+                        </button>
                         <button type="submit" disabled={fpLoading} className="btn-primary flex-1 justify-center disabled:opacity-60">
                           {fpLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : 'Guardar'}
                         </button>

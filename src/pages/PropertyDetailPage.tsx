@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { formatPrice } from '../data/properties';
 import type { Property } from '../data/properties';
 import PropertyCard, { PROPERTY_TYPE_LABELS } from '../components/PropertyCard';
-import { fetchPropertyById, fetchSimilarProperties, submitInquiry, toggleFavorite, checkIsFavorite } from '../services/api';
+import { fetchPropertyById, fetchSimilarProperties, submitInquiry, toggleFavorite, checkIsFavorite, createPropertyReview } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const PropertyDetailPage = () => {
@@ -21,6 +21,14 @@ const PropertyDetailPage = () => {
   // Favorites
   const [isFav, setIsFav]             = useState(false);
   const [favLoading, setFavLoading]   = useState(false);
+
+  // Agent rating
+  const [ratingHover, setRatingHover]     = useState(0);
+  const [ratingValue, setRatingValue]     = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [ratingDone, setRatingDone]       = useState(false);
+  const [ratingError, setRatingError]     = useState('');
 
   // Visit form
   const [visitName, setVisitName]     = useState('');
@@ -84,6 +92,21 @@ const PropertyDetailPage = () => {
       // ignore
     } finally {
       setFavLoading(false);
+    }
+  }
+
+  async function handleRatingSubmit(e: React.SyntheticEvent) {
+    e.preventDefault();
+    if (!id || ratingValue === 0) return;
+    setRatingLoading(true);
+    setRatingError('');
+    try {
+      await createPropertyReview(id, ratingValue, ratingComment || undefined);
+      setRatingDone(true);
+    } catch (err: unknown) {
+      setRatingError(err instanceof Error ? err.message : 'Error al enviar calificación.');
+    } finally {
+      setRatingLoading(false);
     }
   }
 
@@ -257,6 +280,54 @@ const PropertyDetailPage = () => {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Agent rating */}
+            <div className="card p-6">
+              <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white mb-1">Calificar al agente</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">¿Cómo fue tu experiencia con {property.agent.name.split(' ')[0]}?</p>
+
+              {!isAuthenticated ? (
+                <p className="rounded-xl bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-500 dark:text-slate-400 text-center">
+                  <Link to="/login" className="text-brand-600 font-medium hover:underline dark:text-brand-400">Inicia sesión</Link> para calificar
+                </p>
+              ) : ratingDone ? (
+                <div className="flex flex-col items-center gap-2 rounded-xl bg-green-50 dark:bg-green-950 px-4 py-4 text-center">
+                  <span className="material-symbols-outlined text-3xl text-green-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-300">¡Gracias por tu calificación!</p>
+                </div>
+              ) : (
+                <form onSubmit={handleRatingSubmit} className="space-y-3">
+                  {ratingError && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950 dark:text-red-400">{ratingError}</p>}
+                  <div className="flex justify-center gap-1">
+                    {[1,2,3,4,5].map(star => (
+                      <button
+                        key={star} type="button"
+                        onMouseEnter={() => setRatingHover(star)}
+                        onMouseLeave={() => setRatingHover(0)}
+                        onClick={() => setRatingValue(star)}
+                        className="text-3xl transition-transform hover:scale-110 focus:outline-none">
+                        <span className="material-symbols-outlined text-3xl" style={{
+                          color: star <= (ratingHover || ratingValue) ? '#f59e0b' : '#cbd5e1',
+                          fontVariationSettings: star <= (ratingHover || ratingValue) ? "'FILL' 1" : "'FILL' 0",
+                        }}>star</span>
+                      </button>
+                    ))}
+                  </div>
+                  {ratingValue > 0 && (
+                    <p className="text-center text-xs font-medium text-amber-600 dark:text-amber-400">
+                      {['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'][ratingValue]}
+                    </p>
+                  )}
+                  <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)}
+                    placeholder="Comentario opcional..." rows={2} className="input-field resize-none text-sm" />
+                  <button type="submit" disabled={ratingValue === 0 || ratingLoading} className="btn-primary w-full justify-center disabled:opacity-60">
+                    {ratingLoading
+                      ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      : 'Enviar calificación'}
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Schedule visit */}

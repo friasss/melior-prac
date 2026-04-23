@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createProperty, addPropertyImageUrls, type CreatePropertyPayload } from '../services/api';
+import { createProperty, addPropertyImageUrls, fetchMyProperties, type CreatePropertyPayload } from '../services/api';
 import ImageCropModal from '../components/ImageCropModal';
+import PaymentModal from '../components/PaymentModal';
+
+const DOP_RATE = 59;
+const FEATURED_PRICE_USD = 10;
+const EXTRA_PROP_PRICE_USD = 30;
+const FREE_PROP_LIMIT = 2;
 
 function UpgradeToAgentScreen() {
   const { upgradeToAgent } = useAuth();
@@ -90,6 +96,12 @@ export default function PublishPropertyPage() {
   const [success, setSuccess]     = useState(false);
   const [newPropertyId, setNewPropertyId] = useState('');
 
+  // Property count + payment
+  const [myPropCount, setMyPropCount] = useState<number | null>(null);
+  const [showFeaturedPayment, setShowFeaturedPayment] = useState(false);
+  const [showPublishPayment, setShowPublishPayment]   = useState(false);
+  const [publishPaid, setPublishPaid] = useState(false);
+
   // Step 1
   const [title, setTitle]         = useState('');
   const [description, setDescription] = useState('');
@@ -119,6 +131,12 @@ export default function PublishPropertyPage() {
   const [cropSrc, setCropSrc]         = useState<string | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const dragIdx = React.useRef<number | null>(null);
+
+  useEffect(() => {
+    if (user?.role === 'AGENT' || user?.role === 'ADMIN') {
+      fetchMyProperties().then(p => setMyPropCount(p.length)).catch(() => setMyPropCount(0));
+    }
+  }, [user]);
 
   function toggleFeature(name: string) {
     setSelectedFeatures(prev => prev.includes(name) ? prev.filter(f => f !== name) : [...prev, name]);
@@ -171,16 +189,9 @@ export default function PublishPropertyPage() {
     setDragOverIdx(null);
   }
 
-  async function handleSubmit(e: React.SyntheticEvent) {
-    e.preventDefault();
-    setError('');
-
-    if (images.length < 2) {
-      setImageError('Debes subir al menos 2 fotos de la propiedad.');
-      return;
-    }
-
+  async function doSubmit() {
     setIsSubmitting(true);
+    setError('');
     try {
       const payload: CreatePropertyPayload = {
         title, description,
@@ -193,7 +204,6 @@ export default function PublishPropertyPage() {
         address: { city, neighborhood, street, country },
         features: selectedFeatures.map(name => ({ name, category: 'general' })),
       };
-
       const id = await createProperty(payload);
       setNewPropertyId(id);
       await addPropertyImageUrls(id, images);
@@ -204,6 +214,19 @@ export default function PublishPropertyPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleSubmit(e: React.SyntheticEvent) {
+    e.preventDefault();
+    if (images.length < 2) {
+      setImageError('Debes subir al menos 2 fotos de la propiedad.');
+      return;
+    }
+    if (myPropCount !== null && myPropCount >= FREE_PROP_LIMIT && !publishPaid) {
+      setShowPublishPayment(true);
+      return;
+    }
+    await doSubmit();
   }
 
   if (authLoading) return (
@@ -261,6 +284,28 @@ export default function PublishPropertyPage() {
             </React.Fragment>
           ))}
         </div>
+
+        {/* Property limit banners */}
+        {myPropCount === FREE_PROP_LIMIT - 1 && !publishPaid && (
+          <div className="mb-5 flex items-start gap-3 rounded-xl bg-blue-50 px-4 py-3 dark:bg-blue-950/40">
+            <span className="material-symbols-outlined text-base text-blue-600 dark:text-blue-400 mt-0.5">info</span>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Solo te queda <strong>1 propiedad gratuita</strong>. La siguiente requerirá un pago de{' '}
+              <strong>${EXTRA_PROP_PRICE_USD} USD</strong>{' '}
+              <span className="font-normal opacity-70">(≈ RD${Math.round(EXTRA_PROP_PRICE_USD * DOP_RATE).toLocaleString('es-DO')})</span>.
+            </p>
+          </div>
+        )}
+        {myPropCount !== null && myPropCount >= FREE_PROP_LIMIT && !publishPaid && (
+          <div className="mb-5 flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 dark:bg-amber-950/40">
+            <span className="material-symbols-outlined text-base text-amber-600 dark:text-amber-400 mt-0.5">payments</span>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Has usado tus {FREE_PROP_LIMIT} propiedades gratuitas. Esta publicación adicional tiene un costo de{' '}
+              <strong>${EXTRA_PROP_PRICE_USD} USD</strong>{' '}
+              <span className="font-normal opacity-70">(≈ RD${Math.round(EXTRA_PROP_PRICE_USD * DOP_RATE).toLocaleString('es-DO')})</span>.
+            </p>
+          </div>
+        )}
 
         {error && <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{error}</div>}
 
@@ -348,9 +393,16 @@ export default function PublishPropertyPage() {
               <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4 dark:border-slate-700">
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Marcar como destacado</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Aparecerá en la sección destacada</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Aparecerá en la sección destacada del inicio</p>
+                  <p className="mt-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    ${FEATURED_PRICE_USD} USD{' '}
+                    <span className="font-normal text-slate-400">· ≈ RD${Math.round(FEATURED_PRICE_USD * DOP_RATE).toLocaleString('es-DO')}</span>
+                  </p>
                 </div>
-                <button type="button" onClick={() => setIsFeatured(!isFeatured)}
+                <button type="button" onClick={() => {
+                  if (!isFeatured) { setShowFeaturedPayment(true); }
+                  else { setIsFeatured(false); }
+                }}
                   className={`relative h-6 w-11 rounded-full transition-colors ${isFeatured ? 'bg-brand-600' : 'bg-slate-200 dark:bg-slate-700'}`}>
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isFeatured ? 'translate-x-5' : ''}`} />
                 </button>
@@ -512,6 +564,24 @@ export default function PublishPropertyPage() {
         onClose={() => setCropSrc(null)}
       />
     )}
+
+    <PaymentModal
+      isOpen={showFeaturedPayment}
+      onClose={() => setShowFeaturedPayment(false)}
+      onSuccess={() => { setShowFeaturedPayment(false); setIsFeatured(true); }}
+      amountUSD={FEATURED_PRICE_USD}
+      title="Destacar propiedad"
+      description="Tu propiedad aparecerá en la sección destacada del inicio"
+    />
+
+    <PaymentModal
+      isOpen={showPublishPayment}
+      onClose={() => setShowPublishPayment(false)}
+      onSuccess={() => { setShowPublishPayment(false); setPublishPaid(true); doSubmit(); }}
+      amountUSD={EXTRA_PROP_PRICE_USD}
+      title="Publicación adicional"
+      description={`Superaste el límite de ${FREE_PROP_LIMIT} propiedades gratuitas`}
+    />
     </>
   );
 }

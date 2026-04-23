@@ -264,6 +264,13 @@ export async function resetPasswordWithCode(email: string, code: string, newPass
   await apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, newPassword }) });
 }
 
+export async function createPropertyReview(propertyId: string, rating: number, comment?: string): Promise<void> {
+  await apiFetch('/api/reviews', {
+    method: 'POST',
+    body: JSON.stringify({ propertyId, rating, ...(comment ? { comment } : {}) }),
+  });
+}
+
 export async function upgradeToAgent(): Promise<{ user: AuthUser; accessToken: string; refreshToken: string }> {
   const res = await apiFetch<any>('/api/auth/upgrade-to-agent', { method: 'POST' });
   return res.data;
@@ -410,7 +417,7 @@ export interface AdminDashboardData {
     id: string; title: string; price: number; currency: string;
     status: string; listingStatus: string; propertyType: string;
     viewCount: number; createdAt: string; image: string;
-    favorites: number; agentName: string;
+    favorites: number; agentName: string; isFeatured: boolean;
   }[];
   allUsers: {
     id: string; firstName: string; lastName: string; email: string;

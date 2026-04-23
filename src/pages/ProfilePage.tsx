@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -33,6 +33,13 @@ const ProfilePage = () => {
   const [pwdMsg,     setPwdMsg]     = useState('');
   const [pwdError,   setPwdError]   = useState('');
   const [pwdShowNew, setPwdShowNew] = useState(false);
+  const [pwdResendCooldown, setPwdResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (pwdResendCooldown <= 0) return;
+    const t = setTimeout(() => setPwdResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [pwdResendCooldown]);
 
   const PWD_RULES = [
     { label: '8+ caracteres', test: (p: string) => p.length >= 8 },
@@ -138,10 +145,24 @@ const ProfilePage = () => {
       await requestPasswordReset(user.email);
       setPwdStep('verify');
       setPwdMsg('Código enviado. Revisa tu correo.');
+      setPwdResendCooldown(30);
     } catch (err: unknown) {
       setPwdError(err instanceof Error ? err.message : 'Error al enviar código.');
     } finally { setPwdLoading(false); }
   }
+
+  const handleResendPwdCode = useCallback(async () => {
+    setPwdMsg(''); setPwdError('');
+    if (!user?.email) return;
+    setPwdLoading(true);
+    try {
+      await requestPasswordReset(user.email);
+      setPwdMsg('Código reenviado. Revisa tu correo.');
+      setPwdResendCooldown(30);
+    } catch (err: unknown) {
+      setPwdError(err instanceof Error ? err.message : 'Error al reenviar código.');
+    } finally { setPwdLoading(false); }
+  }, [user?.email]);
 
   async function handleChangePassword(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -224,7 +245,7 @@ const ProfilePage = () => {
             <p className="mt-3 font-heading text-base font-bold text-slate-900 dark:text-white">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-full px-1">{user?.email}</p>
             <span className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               user?.role === 'ADMIN'
                 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
@@ -404,10 +425,14 @@ const ProfilePage = () => {
                     <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Confirmar nueva contraseña</label>
                     <input type="password" value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)} required placeholder="••••••••" className="input-field" />
                   </div>
-                  <div className="flex gap-3 pt-1">
-                    <button type="button" onClick={() => { setPwdStep('request'); setPwdCode(''); setNewPwd(''); setConfirmPwd(''); setPwdMsg(''); setPwdError(''); }}
-                      className="btn-secondary text-sm">
-                      <span className="material-symbols-outlined text-base">arrow_back</span>Atrás
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={() => { setPwdStep('request'); setPwdCode(''); setNewPwd(''); setConfirmPwd(''); setPwdMsg(''); setPwdError(''); setPwdResendCooldown(0); }}
+                      className="btn-secondary text-sm px-3" title="Atrás">
+                      <span className="material-symbols-outlined text-base">arrow_back</span>
+                    </button>
+                    <button type="button" onClick={handleResendPwdCode} disabled={pwdResendCooldown > 0 || pwdLoading}
+                      className="btn-secondary text-sm disabled:opacity-60 whitespace-nowrap">
+                      {pwdResendCooldown > 0 ? `Reenviar (${pwdResendCooldown}s)` : 'Reenviar código'}
                     </button>
                     <button type="submit" disabled={pwdLoading} className="btn-primary disabled:opacity-60 flex-1 justify-center">
                       {pwdLoading
