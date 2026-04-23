@@ -256,6 +256,14 @@ export async function completeOAuthProfile(data: {
   return res.data;
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiFetch('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+export async function resetPasswordWithCode(email: string, code: string, newPassword: string): Promise<void> {
+  await apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, newPassword }) });
+}
+
 export async function upgradeToAgent(): Promise<{ user: AuthUser; accessToken: string; refreshToken: string }> {
   const res = await apiFetch<any>('/api/auth/upgrade-to-agent', { method: 'POST' });
   return res.data;

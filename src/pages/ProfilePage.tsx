@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { apiFetch, fetchMyInquiries, fetchMyProperties, type MyInquiry } from '../services/api';
+import { apiFetch, fetchMyInquiries, fetchMyProperties, requestPasswordReset, resetPasswordWithCode, type MyInquiry } from '../services/api';
 import type { Property } from '../data/properties';
 import ImageCropModal from '../components/ImageCropModal';
 
@@ -24,13 +24,21 @@ const ProfilePage = () => {
   const [infoMsg,     setInfoMsg]     = useState('');
   const [infoError,   setInfoError]   = useState('');
 
-  // ── Contraseña ──
-  const [currentPwd,  setCurrentPwd]  = useState('');
-  const [newPwd,      setNewPwd]      = useState('');
-  const [confirmPwd,  setConfirmPwd]  = useState('');
-  const [pwdLoading,  setPwdLoading]  = useState(false);
-  const [pwdMsg,      setPwdMsg]      = useState('');
-  const [pwdError,    setPwdError]    = useState('');
+  // ── Contraseña (OTP flow) ──
+  const [pwdStep,    setPwdStep]    = useState<'request' | 'verify'>('request');
+  const [pwdCode,    setPwdCode]    = useState('');
+  const [newPwd,     setNewPwd]     = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdMsg,     setPwdMsg]     = useState('');
+  const [pwdError,   setPwdError]   = useState('');
+  const [pwdShowNew, setPwdShowNew] = useState(false);
+
+  const PWD_RULES = [
+    { label: '8+ caracteres', test: (p: string) => p.length >= 8 },
+    { label: 'Una mayúscula', test: (p: string) => /[A-Z]/.test(p) },
+    { label: 'Un número',     test: (p: string) => /[0-9]/.test(p) },
+  ];
 
   // ── Mis Consultas ──
   const [inquiries, setInquiries]               = useState<MyInquiry[]>([]);
@@ -122,25 +130,33 @@ const ProfilePage = () => {
     }
   }
 
+  async function handleRequestPwdCode() {
+    setPwdMsg(''); setPwdError('');
+    if (!user?.email) return;
+    setPwdLoading(true);
+    try {
+      await requestPasswordReset(user.email);
+      setPwdStep('verify');
+      setPwdMsg('Código enviado. Revisa tu correo.');
+    } catch (err: unknown) {
+      setPwdError(err instanceof Error ? err.message : 'Error al enviar código.');
+    } finally { setPwdLoading(false); }
+  }
+
   async function handleChangePassword(e: React.SyntheticEvent) {
     e.preventDefault();
     setPwdMsg(''); setPwdError('');
-    if (newPwd !== confirmPwd) { setPwdError('Las contraseñas nuevas no coinciden.'); return; }
-    if (newPwd.length < 8)     { setPwdError('La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (!PWD_RULES.every(r => r.test(newPwd))) { setPwdError('La contraseña no cumple los requisitos.'); return; }
+    if (newPwd !== confirmPwd) { setPwdError('Las contraseñas no coinciden.'); return; }
+    if (pwdCode.length !== 6)  { setPwdError('El código debe tener 6 dígitos.'); return; }
     setPwdLoading(true);
     try {
-      await apiFetch('/api/auth/password', {
-        method: 'PATCH',
-        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd, confirmNewPassword: confirmPwd }),
-      });
-      setPwdMsg('Contraseña actualizada. Inicia sesión nuevamente.');
-      setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
+      await resetPasswordWithCode(user!.email, pwdCode, newPwd);
+      setPwdMsg('¡Contraseña actualizada! Iniciando sesión de nuevo…');
       setTimeout(() => { logout(); navigate('/login'); }, 2000);
     } catch (err: unknown) {
       setPwdError(err instanceof Error ? err.message : 'Error al cambiar contraseña.');
-    } finally {
-      setPwdLoading(false);
-    }
+    } finally { setPwdLoading(false); }
   }
 
   async function handleLogout() {
@@ -328,7 +344,9 @@ const ProfilePage = () => {
                 </div>
                 <div>
                   <h2 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Cambiar Contraseña</h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Usa una contraseña segura de al menos 8 caracteres</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {pwdStep === 'request' ? 'Te enviaremos un código de verificación a tu correo' : `Código enviado a ${user?.email}`}
+                  </p>
                 </div>
               </div>
 
@@ -342,45 +360,63 @@ const ProfilePage = () => {
                 <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{pwdError}</div>
               )}
 
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña actual</label>
-                  <input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} required placeholder="••••••••" className="input-field" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Nueva contraseña</label>
-                  <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required placeholder="••••••••" minLength={8} className="input-field" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Confirmar nueva contraseña</label>
-                  <input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} required placeholder="••••••••" className="input-field" />
-                </div>
-
-                <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                  <p className="font-medium">Requisitos de contraseña:</p>
-                  <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
-                    <li>Mínimo 8 caracteres</li>
-                    <li>Al menos una letra mayúscula</li>
-                    <li>Al menos un número</li>
-                  </ul>
-                </div>
-
-                <div className="pt-2">
-                  <button type="submit" disabled={pwdLoading} className="btn-primary disabled:opacity-60">
-                    {pwdLoading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        Actualizando...
-                      </span>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-lg">lock_reset</span>
-                        Actualizar contraseña
-                      </>
-                    )}
+              {pwdStep === 'request' ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                    El código se enviará a <strong className="text-slate-800 dark:text-slate-200">{user?.email}</strong>
+                  </div>
+                  <button onClick={handleRequestPwdCode} disabled={pwdLoading} className="btn-primary disabled:opacity-60">
+                    {pwdLoading
+                      ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      : <><span className="material-symbols-outlined text-base">send</span>Enviar código al correo</>}
                   </button>
                 </div>
-              </form>
+              ) : (
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Código de 6 dígitos</label>
+                    <input type="text" inputMode="numeric" maxLength={6} value={pwdCode}
+                      onChange={e => setPwdCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000" className="input-field text-center text-2xl font-bold tracking-[0.5em]" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Nueva contraseña</label>
+                    <div className="relative">
+                      <input type={pwdShowNew ? 'text' : 'password'} value={newPwd} onChange={e => setNewPwd(e.target.value)}
+                        required minLength={8} placeholder="••••••••" className="input-field pr-11" />
+                      <button type="button" onClick={() => setPwdShowNew(!pwdShowNew)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
+                        <span className="material-symbols-outlined text-xl">{pwdShowNew ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    </div>
+                    {newPwd.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                        {PWD_RULES.map(({ label, test }) => (
+                          <span key={label} className={`flex items-center gap-1 text-xs font-medium ${test(newPwd) ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                            <span className="material-symbols-outlined text-sm">{test(newPwd) ? 'check_circle' : 'radio_button_unchecked'}</span>
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Confirmar nueva contraseña</label>
+                    <input type="password" value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)} required placeholder="••••••••" className="input-field" />
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={() => { setPwdStep('request'); setPwdCode(''); setNewPwd(''); setConfirmPwd(''); setPwdMsg(''); setPwdError(''); }}
+                      className="btn-secondary text-sm">
+                      <span className="material-symbols-outlined text-base">arrow_back</span>Atrás
+                    </button>
+                    <button type="submit" disabled={pwdLoading} className="btn-primary disabled:opacity-60 flex-1 justify-center">
+                      {pwdLoading
+                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        : <><span className="material-symbols-outlined text-base">lock_reset</span>Actualizar contraseña</>}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
 

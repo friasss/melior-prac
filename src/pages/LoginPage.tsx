@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { requestPasswordReset, resetPasswordWithCode } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+
+const PWD_RULES = [
+  { label: '8+ caracteres', test: (p: string) => p.length >= 8 },
+  { label: 'Una mayúscula', test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Un número',     test: (p: string) => /[0-9]/.test(p) },
+];
 
 const LoginPage = () => {
   const { login, register } = useAuth();
@@ -25,11 +32,49 @@ const LoginPage = () => {
   const [password, setPassword]   = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Forgot password flow: 'off' | 'email' | 'code'
+  const [fpStep, setFpStep]           = useState<'off' | 'email' | 'code'>('off');
+  const [fpEmail, setFpEmail]         = useState('');
+  const [fpCode, setFpCode]           = useState('');
+  const [fpNew, setFpNew]             = useState('');
+  const [fpConfirm, setFpConfirm]     = useState('');
+  const [fpShowNew, setFpShowNew]     = useState(false);
+  const [fpLoading, setFpLoading]     = useState(false);
+  const [fpError, setFpError]         = useState('');
+  const [fpSuccess, setFpSuccess]     = useState(false);
+
   function resetFields() {
     setRole('CLIENT');
     setFirstName(''); setLastName(''); setPhone('');
     setEmail(''); setPassword(''); setConfirmPassword('');
     setError('');
+  }
+
+  async function handleFpRequestCode(e: React.SyntheticEvent) {
+    e.preventDefault();
+    setFpError('');
+    setFpLoading(true);
+    try {
+      await requestPasswordReset(fpEmail);
+      setFpStep('code');
+    } catch (err: unknown) {
+      setFpError(err instanceof Error ? err.message : 'Error al enviar');
+    } finally { setFpLoading(false); }
+  }
+
+  async function handleFpReset(e: React.SyntheticEvent) {
+    e.preventDefault();
+    setFpError('');
+    if (!PWD_RULES.every(r => r.test(fpNew))) { setFpError('La contraseña no cumple los requisitos.'); return; }
+    if (fpNew !== fpConfirm) { setFpError('Las contraseñas no coinciden.'); return; }
+    if (fpCode.length !== 6) { setFpError('El código debe tener 6 dígitos.'); return; }
+    setFpLoading(true);
+    try {
+      await resetPasswordWithCode(fpEmail, fpCode, fpNew);
+      setFpSuccess(true);
+    } catch (err: unknown) {
+      setFpError(err instanceof Error ? err.message : 'Error al restablecer');
+    } finally { setFpLoading(false); }
   }
 
   async function handleSubmit(e: React.SyntheticEvent) {
@@ -83,6 +128,90 @@ const LoginPage = () => {
       <main className="relative z-10 flex flex-grow flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="card p-6 sm:p-8 shadow-2xl">
+
+            {/* ── FORGOT PASSWORD FLOW ── */}
+            {fpStep !== 'off' && (
+              <div>
+                <button onClick={() => { setFpStep('off'); setFpError(''); setFpCode(''); setFpNew(''); setFpConfirm(''); setFpSuccess(false); }}
+                  className="mb-4 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                  <span className="material-symbols-outlined text-base">arrow_back</span>
+                  Volver
+                </button>
+
+                {fpSuccess ? (
+                  <div className="flex flex-col items-center gap-4 py-4 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-950">
+                      <span className="material-symbols-outlined text-4xl text-green-600" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                    </div>
+                    <h2 className="font-heading text-xl font-bold text-slate-900 dark:text-white">¡Contraseña actualizada!</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+                    <button onClick={() => { setFpStep('off'); setFpSuccess(false); }} className="btn-primary w-full justify-center">
+                      Iniciar Sesión
+                    </button>
+                  </div>
+                ) : fpStep === 'email' ? (
+                  <div>
+                    <h2 className="font-heading text-xl font-bold text-slate-900 dark:text-white">Recuperar contraseña</h2>
+                    <p className="mt-1 mb-5 text-sm text-slate-500 dark:text-slate-400">Te enviaremos un código de 6 dígitos a tu correo.</p>
+                    {fpError && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{fpError}</div>}
+                    <form onSubmit={handleFpRequestCode} className="space-y-4">
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Correo electrónico</label>
+                        <input type="email" value={fpEmail} onChange={e => setFpEmail(e.target.value)} required placeholder="tuemail@ejemplo.com" className="input-field" />
+                      </div>
+                      <button type="submit" disabled={fpLoading} className="btn-primary w-full justify-center py-3 disabled:opacity-60">
+                        {fpLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><span className="material-symbols-outlined text-base">send</span>Enviar código</>}
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div>
+                    <h2 className="font-heading text-xl font-bold text-slate-900 dark:text-white">Nuevo acceso</h2>
+                    <p className="mt-1 mb-5 text-sm text-slate-500 dark:text-slate-400">Ingresa el código que enviamos a <strong>{fpEmail}</strong> y tu nueva contraseña.</p>
+                    {fpError && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{fpError}</div>}
+                    <form onSubmit={handleFpReset} className="space-y-4">
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Código de 6 dígitos</label>
+                        <input type="text" inputMode="numeric" maxLength={6} value={fpCode} onChange={e => setFpCode(e.target.value.replace(/\D/g, ''))}
+                          placeholder="000000" className="input-field text-center text-2xl font-bold tracking-[0.5em]" />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Nueva contraseña</label>
+                        <div className="relative">
+                          <input type={fpShowNew ? 'text' : 'password'} value={fpNew} onChange={e => setFpNew(e.target.value)} required minLength={8} placeholder="••••••••" className="input-field pr-11" />
+                          <button type="button" onClick={() => setFpShowNew(!fpShowNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
+                            <span className="material-symbols-outlined text-xl">{fpShowNew ? 'visibility_off' : 'visibility'}</span>
+                          </button>
+                        </div>
+                        {fpNew.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                            {PWD_RULES.map(({ label, test }) => (
+                              <span key={label} className={`flex items-center gap-1 text-xs font-medium ${test(fpNew) ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                                <span className="material-symbols-outlined text-sm">{test(fpNew) ? 'check_circle' : 'radio_button_unchecked'}</span>
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Confirmar contraseña</label>
+                        <input type="password" value={fpConfirm} onChange={e => setFpConfirm(e.target.value)} required placeholder="••••••••" className="input-field" />
+                      </div>
+                      <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={() => setFpStep('email')} className="btn-secondary flex-1 justify-center text-sm">Reenviar código</button>
+                        <button type="submit" disabled={fpLoading} className="btn-primary flex-1 justify-center disabled:opacity-60">
+                          {fpLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : 'Guardar'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── NORMAL LOGIN / REGISTER ── */}
+            {fpStep === 'off' && <>
             {/* Header */}
             <div className="text-center">
               <h1 className="font-heading text-2xl font-bold text-slate-900 dark:text-white">
@@ -243,7 +372,10 @@ const LoginPage = () => {
 
               {isLogin && (
                 <div className="text-right">
-                  <a href="#" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">¿Olvidaste tu contraseña?</a>
+                  <button type="button" onClick={() => { setFpEmail(email); setFpStep('email'); setFpError(''); }}
+                    className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 </div>
               )}
 
@@ -290,6 +422,7 @@ const LoginPage = () => {
               <a className="font-medium text-brand-600 hover:underline dark:text-brand-400" href="#">Términos</a>{' '}y{' '}
               <a className="font-medium text-brand-600 hover:underline dark:text-brand-400" href="#">Privacidad</a>.
             </p>
+            </>}
           </div>
         </div>
       </main>
