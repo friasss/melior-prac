@@ -45,6 +45,11 @@ const ProfilePage = () => {
   const [avatarMsg, setAvatarMsg]             = useState('');
   const [cropSrc, setCropSrc]                 = useState<string | null>(null);
 
+  // ── Email verification ──
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyMsg,     setVerifyMsg]     = useState('');
+  const [verifyError,   setVerifyError]   = useState('');
+
   useEffect(() => {
     if (section === 'inquiries' && inquiries.length === 0) {
       setInquiriesLoading(true);
@@ -141,6 +146,20 @@ const ProfilePage = () => {
   async function handleLogout() {
     await logout();
     navigate('/');
+  }
+
+  async function handleResendVerification() {
+    setVerifyLoading(true);
+    setVerifyMsg('');
+    setVerifyError('');
+    try {
+      await apiFetch('/api/auth/resend-verification', { method: 'POST' });
+      setVerifyMsg('Correo enviado. Revisa tu bandeja de entrada.');
+    } catch (err: unknown) {
+      setVerifyError(err instanceof Error ? err.message : 'Error al enviar');
+    } finally {
+      setVerifyLoading(false);
+    }
   }
 
   // Avatar / initials
@@ -528,6 +547,36 @@ const ProfilePage = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Email verification */}
+              <div className="card p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${user?.emailVerified ? 'bg-green-50 dark:bg-green-950' : 'bg-amber-50 dark:bg-amber-950'}`}>
+                      <span className={`material-symbols-outlined text-xl ${user?.emailVerified ? 'text-green-600 dark:text-green-400' : 'text-amber-500'}`}
+                        style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {user?.emailVerified ? 'verified' : 'mail'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white">Verificación de correo</h3>
+                      <p className={`text-sm mt-0.5 ${user?.emailVerified ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {user?.emailVerified ? '✓ Correo verificado' : 'Correo sin verificar'}
+                      </p>
+                    </div>
+                  </div>
+                  {!user?.emailVerified && (
+                    <button onClick={handleResendVerification} disabled={verifyLoading}
+                      className="btn-primary text-sm flex-shrink-0 disabled:opacity-60">
+                      {verifyLoading
+                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        : <><span className="material-symbols-outlined text-base">send</span>Enviar correo</>}
+                    </button>
+                  )}
+                </div>
+                {verifyMsg && <p className="mt-3 rounded-xl bg-green-50 px-4 py-2.5 text-sm text-green-700 dark:bg-green-950 dark:text-green-300">{verifyMsg}</p>}
+                {verifyError && <p className="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">{verifyError}</p>}
               </div>
 
               {/* Acciones rápidas */}
