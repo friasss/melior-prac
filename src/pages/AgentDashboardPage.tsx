@@ -15,9 +15,10 @@ const LISTING_STATUS_OPTIONS = [
 ];
 
 const INQUIRY_STATUS_OPTIONS = [
-  { value: 'PENDING',    label: 'Pendiente',   color: 'bg-amber-100 text-amber-700' },
-  { value: 'RESPONDED',  label: 'Respondida',  color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'CLOSED',     label: 'Cerrada',     color: 'bg-slate-100 text-slate-500' },
+  { value: 'NEW',         label: 'Nueva',       color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
+  { value: 'IN_PROGRESS', label: 'En proceso',  color: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
+  { value: 'RESOLVED',    label: 'Resuelta',    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+  { value: 'CLOSED',      label: 'Cerrada',     color: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400' },
 ];
 
 function formatPrice(price: number, currency: string) {
@@ -110,7 +111,7 @@ const AgentDashboardPage = () => {
   // Stats
   const totalViews    = properties.reduce((s, p) => s + p.viewCount, 0);
   const activeCount   = properties.filter(p => p.listingStatus === 'ACTIVE').length;
-  const pendingInqs   = inquiries.filter(i => i.status === 'PENDING').length;
+  const pendingInqs   = inquiries.filter(i => i.status === 'NEW' || i.status === 'IN_PROGRESS').length;
 
   if (loading) {
     return (
@@ -401,13 +402,22 @@ const AgentDashboardPage = () => {
                           <span className="material-symbols-outlined text-sm">mail</span>
                           Responder
                         </a>
-                        {inq.status === 'PENDING' && (
+                        {(inq.status === 'NEW' || inq.status === 'IN_PROGRESS') && (
                           <button
-                            onClick={() => handleInquiryStatus(inq.id, 'RESPONDED')}
+                            onClick={() => handleInquiryStatus(inq.id, 'RESOLVED')}
                             className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                           >
                             <span className="material-symbols-outlined text-sm">check</span>
-                            Marcar respondida
+                            Marcar resuelta
+                          </button>
+                        )}
+                        {inq.status === 'NEW' && (
+                          <button
+                            onClick={() => handleInquiryStatus(inq.id, 'IN_PROGRESS')}
+                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <span className="material-symbols-outlined text-sm">schedule</span>
+                            En proceso
                           </button>
                         )}
                         {inq.status !== 'CLOSED' && (

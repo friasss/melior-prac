@@ -508,8 +508,14 @@ export interface AgentInquiry {
 }
 
 export async function fetchAgentInquiries(): Promise<AgentInquiry[]> {
-  const res = await apiFetch<any>('/api/inquiries/mine');
-  return res.data ?? [];
+  // GET /api/inquiries is role-aware: returns all for admin, agent's property
+  // inquiries for AGENT role. Falls back to empty array on 403.
+  try {
+    const res = await apiFetch<any>('/api/inquiries');
+    return res.data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function updateListingStatus(id: string, listingStatus: string): Promise<void> {
