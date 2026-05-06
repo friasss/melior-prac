@@ -461,6 +461,83 @@ export async function updateInquiryStatus(id: string, status: string): Promise<v
   });
 }
 
+// ─── Conversations / Messaging ───────────────────────────────────────────────
+
+export interface ConversationParticipant {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  role: string;
+}
+
+export interface ConversationSummary {
+  id: string;
+  otherUser: ConversationParticipant;
+  property?: { id: string; title: string; image: string } | null;
+  lastMessage?: { content: string; createdAt: string; senderId: string } | null;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string | null;
+  content: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
+export async function fetchConversations(): Promise<ConversationSummary[]> {
+  const res = await apiFetch<any>('/api/conversations');
+  return res.data ?? [];
+}
+
+export async function fetchConversationMessages(
+  conversationId: string
+): Promise<{ conversation: ConversationSummary; messages: ChatMessage[] }> {
+  const res = await apiFetch<any>(`/api/conversations/${conversationId}/messages`);
+  return res.data;
+}
+
+export async function sendChatMessage(
+  conversationId: string,
+  content: string
+): Promise<ChatMessage> {
+  const res = await apiFetch<any>(`/api/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+  return res.data;
+}
+
+export async function startConversation(
+  propertyId: string,
+  initialMessage: string
+): Promise<{ conversationId: string }> {
+  const res = await apiFetch<any>('/api/conversations', {
+    method: 'POST',
+    body: JSON.stringify({ propertyId, initialMessage }),
+  });
+  return res.data;
+}
+
+export async function markConversationRead(conversationId: string): Promise<void> {
+  await apiFetch(`/api/conversations/${conversationId}/read`, { method: 'PATCH' });
+}
+
+export async function fetchUnreadCount(): Promise<number> {
+  try {
+    const res = await apiFetch<any>('/api/conversations/unread-count');
+    return res.data?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ─── Agent Dashboard ──────────────────────────────────────────────────────────
 
 export interface AgentProperty {

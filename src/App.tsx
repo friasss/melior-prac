@@ -14,6 +14,7 @@ import PublishPropertyPage from './pages/PublishPropertyPage';
 import EditPropertyPage from './pages/EditPropertyPage';
 import AdminPage from './pages/AdminPage';
 import AgentDashboardPage from './pages/AgentDashboardPage';
+import MessagesPage from './pages/MessagesPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -41,6 +42,8 @@ function App() {
           <Route path="/editar/:id" element={<EditPropertyPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/mi-panel" element={<AgentDashboardPage />} />
+          <Route path="/mensajes" element={<MessagesPage />} />
+          <Route path="/mensajes/:conversationId" element={<MessagesPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

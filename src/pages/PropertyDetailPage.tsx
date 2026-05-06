@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { formatPrice } from '../data/properties';
 import type { Property } from '../data/properties';
 import PropertyCard, { PROPERTY_TYPE_LABELS } from '../components/PropertyCard';
-import { fetchPropertyById, fetchSimilarProperties, submitInquiry, toggleFavorite, checkIsFavorite, createPropertyReview } from '../services/api';
+import { fetchPropertyById, fetchSimilarProperties, startConversation, toggleFavorite, checkIsFavorite, createPropertyReview } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const PropertyDetailPage = () => {
@@ -113,20 +113,15 @@ const PropertyDetailPage = () => {
   async function handleVisitSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     if (!id || !property) return;
+    if (!isAuthenticated) { navigate('/login'); return; }
     setVisitLoading(true);
     setVisitError('');
     try {
-      await submitInquiry({
-        firstName: visitName.split(' ')[0] || visitName,
-        lastName:  visitName.split(' ').slice(1).join(' ') || '-',
-        email:     visitEmail,
-        phone:     visitPhone,
-        message:   visitMsg || `Me interesa agendar una visita para: ${property.title}`,
-        subject:   'Comprar una propiedad',
-        propertyId: id,
-      });
+      const message = visitMsg.trim() || `Hola, me interesa agendar una visita para: ${property.title}`;
+      const { conversationId } = await startConversation(id, message);
       setVisitSent(true);
       setVisitName(''); setVisitEmail(''); setVisitPhone(''); setVisitMsg('');
+      setTimeout(() => navigate(`/mensajes/${conversationId}`), 1200);
     } catch (err: unknown) {
       setVisitError(err instanceof Error ? err.message : 'No se pudo enviar la solicitud.');
     } finally {

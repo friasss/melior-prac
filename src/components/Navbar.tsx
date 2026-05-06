@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { fetchUnreadCount } from '../services/api';
 
 const navLinks = [
   { to: '/', label: 'Inicio' },
@@ -16,6 +17,7 @@ const Navbar = () => {
 
   const [mobileOpen, setMobileOpen]   = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount]  = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -28,6 +30,14 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Poll unread message count every 30 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchUnreadCount().then(setUnreadCount);
+    const interval = setInterval(() => fetchUnreadCount().then(setUnreadCount), 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   async function handleLogout() {
     setDropdownOpen(false);
@@ -110,6 +120,17 @@ const Navbar = () => {
               <span className="material-symbols-outlined text-xl">favorite</span>
             </Link>
 
+            {isAuthenticated && (
+              <Link to="/mensajes" className="btn-ghost relative hidden sm:flex">
+                <span className="material-symbols-outlined text-xl">chat</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {isAuthenticated && (user?.role === 'AGENT' || user?.role === 'ADMIN') && (
               <Link to="/publicar" className="btn-primary hidden text-sm sm:flex gap-1.5">
                 <span className="material-symbols-outlined text-base">add_home</span>
@@ -176,6 +197,14 @@ const Navbar = () => {
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
                         <span className="material-symbols-outlined text-[18px] text-slate-400">favorite</span>
                         Mis Favoritos
+                      </Link>
+                      <Link to="/mensajes" onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">chat</span>
+                        Mensajes
+                        {unreadCount > 0 && (
+                          <span className="ml-auto rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white">{unreadCount}</span>
+                        )}
                       </Link>
                       <Link to="/propiedades" onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
@@ -271,6 +300,14 @@ const Navbar = () => {
                     className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
                     <span className="material-symbols-outlined text-[18px]">person</span>
                     Mi Perfil
+                  </Link>
+                  <Link to="/mensajes" onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+                    <span className="material-symbols-outlined text-[18px]">chat</span>
+                    Mensajes
+                    {unreadCount > 0 && (
+                      <span className="ml-auto rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold text-white">{unreadCount}</span>
+                    )}
                   </Link>
                   {(user?.role === 'AGENT' || user?.role === 'ADMIN') && (
                     <Link to="/publicar" onClick={() => setMobileOpen(false)}
