@@ -189,6 +189,13 @@ const Navbar = () => {
                           {user?.role === 'CLIENT' ? 'Publicar Propiedad →' : 'Publicar Propiedad'}
                         </Link>
                       )}
+                      {user?.role === 'AGENT' && (
+                        <Link to="/mi-panel" onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950">
+                          <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
+                          Mi Panel
+                        </Link>
+                      )}
                       {user?.role === 'ADMIN' && (
                         <Link to="/admin" onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950">
@@ -270,6 +277,13 @@ const Navbar = () => {
                       className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950">
                       <span className="material-symbols-outlined text-[18px]">add_home</span>
                       Publicar Propiedad
+                    </Link>
+                  )}
+                  {user?.role === 'AGENT' && (
+                    <Link to="/mi-panel" onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950">
+                      <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
+                      Mi Panel
                     </Link>
                   )}
                   {user?.role === 'ADMIN' && (

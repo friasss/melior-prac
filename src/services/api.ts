@@ -461,6 +461,64 @@ export async function updateInquiryStatus(id: string, status: string): Promise<v
   });
 }
 
+// ─── Agent Dashboard ──────────────────────────────────────────────────────────
+
+export interface AgentProperty {
+  id: string;
+  title: string;
+  price: number;
+  currency: string;
+  status: string;       // SALE | RENT
+  listingStatus: string; // ACTIVE | SOLD | RENTED | ARCHIVED
+  propertyType: string;
+  viewCount: number;
+  createdAt: string;
+  image: string;
+  city: string;
+}
+
+export async function fetchMyPropertiesRaw(): Promise<AgentProperty[]> {
+  const res = await apiFetch<any>('/api/properties/mine');
+  return (res.data ?? []).map((p: any) => ({
+    id: p.id,
+    title: p.title,
+    price: p.price,
+    currency: p.currency ?? 'USD',
+    status: p.status ?? 'SALE',
+    listingStatus: p.listingStatus ?? 'ACTIVE',
+    propertyType: p.propertyType ?? p.type ?? '',
+    viewCount: p.viewCount ?? 0,
+    createdAt: p.createdAt ?? '',
+    image: p.images?.find((i: any) => i.isPrimary)?.url ?? p.images?.[0]?.url ?? '',
+    city: p.address?.city ?? '',
+  }));
+}
+
+export interface AgentInquiry {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  property?: { id: string; title: string; slug?: string } | null;
+}
+
+export async function fetchAgentInquiries(): Promise<AgentInquiry[]> {
+  const res = await apiFetch<any>('/api/inquiries/mine');
+  return res.data ?? [];
+}
+
+export async function updateListingStatus(id: string, listingStatus: string): Promise<void> {
+  await apiFetch(`/api/properties/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ listingStatus }),
+  });
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export interface TrafficStats {
