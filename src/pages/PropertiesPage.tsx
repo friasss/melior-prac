@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PropertyCard from '../components/PropertyCard';
+import { PROPERTY_TYPE_LABELS } from '../components/PropertyCard';
 import { fetchProperties } from '../services/api';
-import { propertyTypes } from '../data/properties';
 import type { Property } from '../data/properties';
+
+// Backend enum values — must match what the API stores
+const PROPERTY_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'LAND', 'COMMERCIAL', 'OFFICE'] as const;
 
 const PropertiesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -124,8 +127,8 @@ const PropertiesPage = () => {
             className="input-field w-auto py-2.5 pr-8 text-sm"
           >
             <option value="all">Todos los tipos</option>
-            {propertyTypes.map((t) => (
-              <option key={t} value={t}>{t}</option>
+            {PROPERTY_TYPES.map((t) => (
+              <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t] ?? t}</option>
             ))}
           </select>
         </div>
