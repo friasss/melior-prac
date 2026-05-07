@@ -8,10 +8,10 @@ import {
 } from '../services/api';
 
 const LISTING_STATUS_OPTIONS = [
-  { value: 'ACTIVE',   label: 'Activa',   color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
-  { value: 'SOLD',     label: 'Vendida',  color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
-  { value: 'RENTED',   label: 'Alquilada',color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
-  { value: 'ARCHIVED', label: 'Archivada',color: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400' },
+  { value: 'ACTIVE',   label: 'Activa',      color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
+  { value: 'SOLD',     label: 'Vendida',     color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+  { value: 'RENTED',   label: 'Alquilada',  color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+  { value: 'ARCHIVED', label: 'Desactivada', color: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400' },
 ];
 
 const INQUIRY_STATUS_OPTIONS = [

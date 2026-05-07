@@ -17,6 +17,7 @@ const PropertiesPage = () => {
     (searchParams.get('status') as 'SALE' | 'RENT') ?? 'all'
   );
   const [typeFilter, setTypeFilter] = useState(searchParams.get('propertyType') ?? 'all');
+  const [cityFilter, setCityFilter] = useState(searchParams.get('city') ?? '');
   const [minPrice, setMinPrice]     = useState(searchParams.get('minPrice') ?? '');
   const [maxPrice, setMaxPrice]     = useState(searchParams.get('maxPrice') ?? '');
   const [sortBy, setSortBy]         = useState(searchParams.get('sort') ?? 'newest');
@@ -41,6 +42,7 @@ const PropertiesPage = () => {
         search: debouncedSearch || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         propertyType: typeFilter !== 'all' ? typeFilter : undefined,
+        city: cityFilter || undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         limit: 50,
@@ -57,7 +59,7 @@ const PropertiesPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, statusFilter, typeFilter, minPrice, maxPrice, sortBy]);
+  }, [debouncedSearch, statusFilter, typeFilter, cityFilter, minPrice, maxPrice, sortBy]);
 
   useEffect(() => {
     loadProperties();
@@ -69,19 +71,21 @@ const PropertiesPage = () => {
     if (debouncedSearch) params.search = debouncedSearch;
     if (statusFilter !== 'all') params.status = statusFilter;
     if (typeFilter !== 'all') params.propertyType = typeFilter;
+    if (cityFilter) params.city = cityFilter;
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, statusFilter, typeFilter, setSearchParams]);
+  }, [debouncedSearch, statusFilter, typeFilter, cityFilter, setSearchParams]);
 
   function clearFilters() {
     setSearch('');
     setStatusFilter('all');
     setTypeFilter('all');
+    setCityFilter('');
     setMinPrice('');
     setMaxPrice('');
     setSortBy('newest');
   }
 
-  const hasActiveFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || minPrice || maxPrice || sortBy !== 'newest';
+  const hasActiveFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || cityFilter || minPrice || maxPrice || sortBy !== 'newest';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
@@ -133,6 +137,19 @@ const PropertiesPage = () => {
           </select>
         </div>
       </div>
+
+      {/* Active city filter chip */}
+      {cityFilter && (
+        <div className="mt-3 flex items-center gap-2">
+          <span className="flex items-center gap-1.5 rounded-full bg-brand-50 pl-3 pr-2 py-1.5 text-sm font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+            <span className="material-symbols-outlined text-[14px]">location_on</span>
+            {cityFilter}
+            <button onClick={() => setCityFilter('')} className="ml-1 flex h-4 w-4 items-center justify-center rounded-full hover:bg-brand-200 dark:hover:bg-brand-800">
+              <span className="material-symbols-outlined text-[12px]">close</span>
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Price range + sort */}
       <div className="mt-3 flex flex-wrap items-center gap-3">

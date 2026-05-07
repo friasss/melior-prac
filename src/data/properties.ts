@@ -8,12 +8,14 @@ export interface Property {
   beds: number;
   baths: number;
   size: number;
+  parkingSpaces?: number;
   type: string;
   status: 'sale' | 'rent';
   featured: boolean;
   image: string;
   images: string[];
   description: string;
+  features?: string[];
   agent: {
     name: string;
     company: string;

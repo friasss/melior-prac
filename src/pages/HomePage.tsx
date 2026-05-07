@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PropertyCard from '../components/PropertyCard';
 import { fetchFeaturedProperties, fetchProperties } from '../services/api';
 import type { Property } from '../data/properties';
@@ -14,12 +14,12 @@ const stats = [
 ];
 
 const categories = [
-  { icon: 'villa',      label: 'Villas',       count: 42,  type: 'Villa',       color: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
-  { icon: 'apartment',  label: 'Apartamentos', count: 128, type: 'Apartamento', color: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400' },
-  { icon: 'house',      label: 'Casas',        count: 85,  type: 'Casa',        color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
-  { icon: 'domain',     label: 'Penthouses',   count: 23,  type: 'Penthouse',   color: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400' },
-  { icon: 'landscape',  label: 'Terrenos',     count: 56,  type: 'Terreno',     color: 'bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
-  { icon: 'store',      label: 'Studios',      count: 34,  type: 'Studio',      color: 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
+  { icon: 'villa',      label: 'Villas',        count: 42,  type: 'VILLA',       color: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  { icon: 'apartment',  label: 'Apartamentos',  count: 128, type: 'APARTMENT',   color: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400' },
+  { icon: 'house',      label: 'Casas',         count: 85,  type: 'HOUSE',       color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
+  { icon: 'domain',     label: 'Comerciales',   count: 23,  type: 'COMMERCIAL',  color: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400' },
+  { icon: 'landscape',  label: 'Terrenos',      count: 56,  type: 'LAND',        color: 'bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
+  { icon: 'store',      label: 'Oficinas',      count: 34,  type: 'OFFICE',      color: 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
 ];
 
 const testimonials = [
@@ -30,10 +30,17 @@ const testimonials = [
 
 const HomePage = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [featured, setFeatured]   = useState<Property[]>([]);
   const [latest, setLatest]       = useState<Property[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingLatest, setLoadingLatest]     = useState(true);
+  const [heroSearch, setHeroSearch] = useState('');
+
+  function handleHeroSearch() {
+    const val = heroSearch.trim();
+    navigate(`/propiedades${val ? `?search=${encodeURIComponent(val)}` : ''}`);
+  }
 
   useEffect(() => {
     fetchFeaturedProperties(4)
@@ -73,27 +80,24 @@ const HomePage = () => {
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
                 <input
                   type="text"
+                  value={heroSearch}
+                  onChange={(e) => setHeroSearch(e.target.value)}
                   placeholder="Buscar por ciudad, zona o tipo..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = (e.target as HTMLInputElement).value;
-                      window.location.href = `/propiedades${val ? `?search=${encodeURIComponent(val)}` : ''}`;
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleHeroSearch(); }}
                   className="w-full rounded-xl border-0 bg-white/10 py-4 pl-12 pr-4 text-white backdrop-blur-md placeholder:text-slate-400 outline-none ring-1 ring-white/20 transition-all focus:bg-white/15 focus:ring-brand-400"
                 />
               </div>
-              <Link to="/propiedades" className="btn-primary whitespace-nowrap py-4 text-base shadow-2xl shadow-brand-600/30">
+              <button onClick={handleHeroSearch} className="btn-primary whitespace-nowrap py-4 text-base shadow-2xl shadow-brand-600/30">
                 <span className="material-symbols-outlined text-xl">search</span>
                 Explorar
-              </Link>
+              </button>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
               {['Cap Cana', 'Punta Cana', 'Santo Domingo', 'Samaná'].map((loc) => (
-                <Link key={loc} to={`/propiedades?city=${encodeURIComponent(loc)}`} className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-slate-300 backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/25">
+                <button key={loc} onClick={() => navigate(`/propiedades?city=${encodeURIComponent(loc)}`)} className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-slate-300 backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/25">
                   {loc}
-                </Link>
+                </button>
               ))}
             </div>
           </div>

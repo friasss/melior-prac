@@ -316,7 +316,7 @@ export default function PublishPropertyPage() {
             <div className="card p-6 space-y-5">
               <div>
                 <label className="label-field">Título del listing</label>
-                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Apartamento moderno en Piantini" required className="input-field" />
+                <input type="text" value={title} onChange={e => setTitle(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))} placeholder="Ej: Apartamento moderno en Piantini" required className="input-field" />
               </div>
               <div>
                 <label className="label-field">Descripción</label>
@@ -418,8 +418,8 @@ export default function PublishPropertyPage() {
           {step === 3 && (
             <div className="card p-6 space-y-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div><label className="label-field">Ciudad *</label><input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="Santo Domingo" required className="input-field" /></div>
-                <div><label className="label-field">Sector / Barrio</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value)} placeholder="Piantini" className="input-field" /></div>
+                <div><label className="label-field">Ciudad *</label><input type="text" value={city} onChange={e => setCity(e.target.value.replace(/[@#*^|\\<>~`@]/g, ''))} placeholder="Santo Domingo" required className="input-field" /></div>
+                <div><label className="label-field">Sector / Barrio</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value.replace(/[@#*^|\\<>~`@]/g, ''))} placeholder="Piantini" className="input-field" /></div>
               </div>
               <div><label className="label-field">Calle / Dirección</label><input type="text" value={street} onChange={e => setStreet(e.target.value)} placeholder="Av. Abraham Lincoln #123" className="input-field" /></div>
               <div>

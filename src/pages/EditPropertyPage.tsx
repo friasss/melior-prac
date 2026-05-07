@@ -64,9 +64,13 @@ export default function EditPropertyPage() {
       setBeds(String(prop.beds ?? ''));
       setBaths(String(prop.baths ?? ''));
       setSize(String(prop.size ?? ''));
+      setParking(String(prop.parkingSpaces ?? 0));
       setCity(prop.location?.split(',')?.[0]?.trim() ?? '');
       setNeighborhood(prop.neighborhood ?? '');
       setIsFeatured(prop.featured ?? false);
+      // Load existing features — keep only known ones as selected chips, preserve others
+      const existingFeatures = prop.features ?? [];
+      setSelectedFeatures(existingFeatures);
       const imgs = prop.images ?? [];
       setPhotos(imgs);
       setOriginalCount(imgs.length);
@@ -320,7 +324,7 @@ export default function EditPropertyPage() {
             <p className="font-heading text-base font-bold text-slate-900 dark:text-white">Información básica</p>
             <div>
               <label className="label-field">Título</label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="input-field" />
+              <input type="text" value={title} onChange={e => setTitle(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))} required className="input-field" />
             </div>
             <div>
               <label className="label-field">Descripción</label>
@@ -369,7 +373,7 @@ export default function EditPropertyPage() {
             <div>
               <label className="label-field">Características</label>
               <div className="mt-2 flex flex-wrap gap-2">
-                {AVAILABLE_FEATURES.map(name => (
+                {[...new Set([...AVAILABLE_FEATURES, ...selectedFeatures])].map(name => (
                   <button key={name} type="button" onClick={() => toggleFeature(name)}
                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                       selectedFeatures.includes(name)
@@ -397,8 +401,8 @@ export default function EditPropertyPage() {
           <div className="card p-6 space-y-5">
             <p className="font-heading text-base font-bold text-slate-900 dark:text-white">Ubicación</p>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="label-field">Ciudad</label><input type="text" value={city} onChange={e => setCity(e.target.value)} required className="input-field" /></div>
-              <div><label className="label-field">Sector</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value)} className="input-field" /></div>
+              <div><label className="label-field">Ciudad</label><input type="text" value={city} onChange={e => setCity(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))} required className="input-field" /></div>
+              <div><label className="label-field">Sector</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))} className="input-field" /></div>
             </div>
             <div><label className="label-field">Dirección</label><input type="text" value={street} onChange={e => setStreet(e.target.value)} className="input-field" /></div>
           </div>

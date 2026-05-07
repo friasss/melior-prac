@@ -233,6 +233,31 @@ const PropertyDetailPage = () => {
               <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Sobre esta propiedad</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{property.description}</p>
             </div>
+
+            {/* Features / Amenidades */}
+            {property.features && property.features.length > 0 && (
+              <div className="card p-6">
+                <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-white">Características y amenidades</h3>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {property.features.map((feature) => (
+                    <span key={feature} className="flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300">
+                      <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Parking spaces */}
+            {(property.parkingSpaces ?? 0) > 0 && (
+              <div className="card flex items-center gap-3 px-5 py-4">
+                <span className="material-symbols-outlined text-slate-500 text-xl">directions_car</span>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {property.parkingSpaces ?? 0} {(property.parkingSpaces ?? 0) === 1 ? 'estacionamiento' : 'estacionamientos'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right sidebar */}
@@ -341,9 +366,9 @@ const PropertyDetailPage = () => {
                   {visitError && (
                     <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950 dark:text-red-400">{visitError}</div>
                   )}
-                  <input type="text" value={visitName} onChange={(e) => setVisitName(e.target.value)} placeholder="Tu nombre completo" required className="input-field" />
-                  <input type="email" value={visitEmail} onChange={(e) => setVisitEmail(e.target.value)} placeholder="Tu correo" required className="input-field" />
-                  <input type="tel" value={visitPhone} onChange={(e) => setVisitPhone(e.target.value)} placeholder="Tu teléfono" className="input-field" />
+                  <input type="text" value={visitName} onChange={(e) => setVisitName(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s.''-]/g, ''))} placeholder="Tu nombre completo" required className="input-field" />
+                  <input type="email" value={visitEmail} onChange={(e) => setVisitEmail(e.target.value)} placeholder="Tu correo electrónico" required className="input-field" />
+                  <input type="tel" value={visitPhone} onChange={(e) => setVisitPhone(e.target.value.replace(/[^\d\s+\-()]/g, ''))} placeholder="Tu teléfono (ej: +1 809-555-0100)" className="input-field" />
                   <textarea value={visitMsg} onChange={(e) => setVisitMsg(e.target.value)} placeholder="Me interesa esta propiedad..." rows={3} className="input-field resize-none" />
                   <button type="submit" disabled={visitLoading} className="btn-primary w-full justify-center disabled:opacity-60">
                     {visitLoading ? (

@@ -82,6 +82,7 @@ export function mapProperty(raw: any): Property {
     beds: raw.beds ?? 0,
     baths: raw.baths ?? 0,
     size: raw.size ?? 0,
+    parkingSpaces: raw.parkingSpaces ?? 0,
     type: raw.propertyType ?? raw.type ?? '',
     // Backend stores "SALE"/"RENT"; frontend expects "sale"/"rent"
     status: (raw.status as string).toLowerCase() as 'sale' | 'rent',
@@ -89,6 +90,7 @@ export function mapProperty(raw: any): Property {
     image: primaryImg,
     images: (raw.images ?? []).map((i: any) => i.url),
     description: raw.description ?? '',
+    features: (raw.features ?? []).map((f: any) => (typeof f === 'string' ? f : f.name ?? '')).filter(Boolean),
     agent: {
       name: `${raw.agent?.user?.firstName ?? ''} ${raw.agent?.user?.lastName ?? ''}`.trim(),
       company: raw.agent?.company ?? 'Melior Properties',
