@@ -141,6 +141,7 @@ const MessagesPage = () => {
   const [sendingMsg, setSendingMsg]         = useState(false);
   const [input, setInput]                   = useState('');
   const [error, setError]                   = useState('');
+  const [msgError, setMsgError]             = useState('');
   const [search, setSearch]                 = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -170,7 +171,7 @@ const MessagesPage = () => {
 
   /* ── Load messages for active conversation ── */
   const loadMessages = useCallback(async (convId: string, silent = false) => {
-    if (!silent) setLoadingMsgs(true);
+    if (!silent) { setLoadingMsgs(true); setMsgError(''); }
     try {
       const data = await fetchConversationMessages(convId);
       setMessages(data.messages ?? []);
@@ -180,8 +181,8 @@ const MessagesPage = () => {
         prev.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c)
       );
       await markConversationRead(convId).catch(() => {});
-    } catch {
-      // silently ignore polling errors
+    } catch (e) {
+      if (!silent) setMsgError('No se pudieron cargar los mensajes.');
     } finally {
       setLoadingMsgs(false);
     }
@@ -246,6 +247,7 @@ const MessagesPage = () => {
   }
 
   const filteredConvs = conversations.filter(c => {
+    if (!c.otherUser) return false;
     const name = `${c.otherUser.firstName} ${c.otherUser.lastName}`.toLowerCase();
     const prop = c.property?.title?.toLowerCase() ?? '';
     const q = search.toLowerCase();
@@ -384,6 +386,12 @@ const MessagesPage = () => {
               {loadingMsgs ? (
                 <div className="flex justify-center py-12">
                   <div className="h-7 w-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                </div>
+              ) : msgError ? (
+                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                  <span className="material-symbols-outlined text-4xl text-slate-300">wifi_off</span>
+                  <p className="text-sm text-slate-500">{msgError}</p>
+                  <button onClick={() => conversationId && loadMessages(conversationId)} className="text-xs text-brand-600 hover:underline">Reintentar</button>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-12 text-center">
