@@ -3,9 +3,9 @@ import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import MainLayout from './layouts/MainLayout';
-
-const HomePage            = lazy(() => import('./pages/HomePage'));
-const LoginPage           = lazy(() => import('./pages/LoginPage'));
+// Critical-path pages — loaded eagerly so the hero renders without an extra round-trip
+import HomePage  from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
 const PropertiesPage      = lazy(() => import('./pages/PropertiesPage'));
 const PropertyDetailPage  = lazy(() => import('./pages/PropertyDetailPage'));
 const BuyingGuidePage     = lazy(() => import('./pages/BuyingGuidePage'));
