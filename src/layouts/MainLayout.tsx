@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MobileNav from '../components/MobileNav';
@@ -10,6 +10,8 @@ import { apiFetch } from '../services/api';
 const MainLayout = () => {
   usePageTracking();
   const { user } = useAuth();
+  const { pathname } = useLocation();
+  const isChat = pathname.startsWith('/mensajes');
   const [dismissed, setDismissed] = useState(false);
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -58,7 +60,7 @@ const MainLayout = () => {
       <main className="flex-grow">
         <Outlet />
       </main>
-      <Footer />
+      {!isChat && <Footer />}
       <MobileNav />
     </div>
   );
