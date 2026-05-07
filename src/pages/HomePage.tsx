@@ -23,9 +23,9 @@ const categories = [
 ];
 
 const testimonials = [
-  { name: 'María Fernández', role: 'Compradora',  text: 'Melior hizo que el proceso de compra fuera increíblemente sencillo. Encontramos nuestra villa soñada en Cap Cana en tiempo récord.', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150' },
-  { name: 'Roberto Sánchez', role: 'Inversionista', text: 'Como inversionista, valoro la transparencia y profesionalismo. Melior superó todas mis expectativas con su servicio personalizado.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150' },
-  { name: 'Lucía Martínez',  role: 'Compradora',  text: 'El equipo de Melior nos guió en cada paso. Su conocimiento del mercado dominicano es incomparable.', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150' },
+  { name: 'María Fernández', role: 'Compradora',  text: 'Melior hizo que el proceso de compra fuera increíblemente sencillo. Encontramos nuestra villa soñada en Cap Cana en tiempo récord.', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=60&w=80&fm=webp' },
+  { name: 'Roberto Sánchez', role: 'Inversionista', text: 'Como inversionista, valoro la transparencia y profesionalismo. Melior superó todas mis expectativas con su servicio personalizado.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=60&w=80&fm=webp' },
+  { name: 'Lucía Martínez',  role: 'Compradora',  text: 'El equipo de Melior nos guió en cada paso. Su conocimiento del mercado dominicano es incomparable.', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=60&w=80&fm=webp' },
 ];
 
 const HomePage = () => {
@@ -52,7 +52,7 @@ const HomePage = () => {
       {/* ═══════════════════════ HERO ═══════════════════════ */}
       <section className="relative overflow-hidden bg-slate-900">
         <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000" alt="" className="h-full w-full object-cover opacity-40" />
+          <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=60&w=1400&fm=webp" alt="" className="h-full w-full object-cover opacity-40" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-slate-900/40" />
         </div>
 
@@ -116,7 +116,7 @@ const HomePage = () => {
       {isAuthenticated && user?.role === 'CLIENT' && (
         <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-600 to-brand-800 px-6 py-8 sm:px-10 sm:py-10">
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1200")', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=50&w=800&fm=webp")', backgroundSize: 'cover', backgroundPosition: 'center' }} />
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-brand-200">Para propietarios</p>
@@ -221,7 +221,7 @@ const HomePage = () => {
               </div>
               <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">"{t.text}"</p>
               <div className="mt-5 flex items-center gap-3">
-                <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full object-cover" />
+                <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full object-cover" loading="lazy" />
                 <div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{t.name}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{t.role}</p>
