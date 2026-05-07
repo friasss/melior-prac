@@ -334,7 +334,7 @@ const MessagesPage = () => {
       {/* ── RIGHT: Chat view ── */}
       <div className="flex flex-1 flex-col overflow-hidden bg-slate-50 dark:bg-surface-dark">
         {!conversationId ? (
-          <div className="hidden md:flex h-full">
+          <div className="hidden md:flex flex-1 items-center justify-center">
             <EmptyChat />
           </div>
         ) : (

@@ -16,7 +16,7 @@ const MainLayout = () => {
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
 
-  const showBanner = !!user && !user.emailVerified && !dismissed;
+  const showBanner = !!user && !user.emailVerified && !dismissed && pathname === '/perfil';
 
   async function handleResend() {
     setResending(true);
