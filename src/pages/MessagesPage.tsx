@@ -235,6 +235,13 @@ const MessagesPage = () => {
     }
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
   function selectConversation(conv: ConversationSummary) {
     navigate(`/mensajes/${conv.id}`);
   }
@@ -410,6 +417,7 @@ const MessagesPage = () => {
                   ref={inputRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="Escribe un mensaje..."
                   rows={1}
                   className="flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-600"
