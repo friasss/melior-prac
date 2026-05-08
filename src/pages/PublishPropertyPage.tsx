@@ -5,6 +5,16 @@ import { createProperty, addPropertyImageUrls, fetchMyProperties, type CreatePro
 import ImageCropModal from '../components/ImageCropModal';
 import PaymentModal from '../components/PaymentModal';
 
+const DR_CITIES = [
+  'Santo Domingo','Santiago de los Caballeros','La Romana','San Pedro de Macorís',
+  'San Francisco de Macorís','La Vega','San Cristóbal','Puerto Plata','Higüey',
+  'Barahona','Moca','Bonao','Azua','Cotui','Monte Plata','Nagua','Samaná',
+  'Hato Mayor','El Seibo','Neiba','Bani','Pedernales','Dajabón','Monte Cristi',
+  'Esperanza','Neyba','Constanza','Jarabacoa','Cabrera','Sosúa','Cabarete',
+  'Las Terrenas','Bávaro','Punta Cana','Cap Cana','Uvero Alto','Juan Dolio',
+  'Boca Chica','Bayahíbe','Casa de Campo',
+];
+
 const DOP_RATE = 59;
 const FEATURED_PRICE_USD = 10;
 const EXTRA_PROP_PRICE_USD = 30;
@@ -418,7 +428,17 @@ export default function PublishPropertyPage() {
           {step === 3 && (
             <div className="card p-6 space-y-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div><label className="label-field">Ciudad *</label><input type="text" value={city} onChange={e => setCity(e.target.value.replace(/[@#*^|\\<>~`@]/g, ''))} placeholder="Santo Domingo" required className="input-field" /></div>
+                <div>
+                  <label className="label-field">Ciudad *</label>
+                  <input
+                    type="text" list="dr-cities-pub" value={city}
+                    onChange={e => setCity(e.target.value.replace(/[@#*^|\\<>~`@]/g, ''))}
+                    placeholder="Santo Domingo" required className="input-field"
+                  />
+                  <datalist id="dr-cities-pub">
+                    {DR_CITIES.map(c => <option key={c} value={c} />)}
+                  </datalist>
+                </div>
                 <div><label className="label-field">Sector / Barrio</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value.replace(/[@#*^|\\<>~`@]/g, ''))} placeholder="Piantini" className="input-field" /></div>
               </div>
               <div><label className="label-field">Calle / Dirección</label><input type="text" value={street} onChange={e => setStreet(e.target.value)} placeholder="Av. Abraham Lincoln #123" className="input-field" /></div>

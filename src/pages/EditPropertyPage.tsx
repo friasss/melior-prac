@@ -4,6 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import { fetchPropertyById, updateProperty, replacePropertyImages, deleteProperty, type CreatePropertyPayload } from '../services/api';
 import ImageCropModal from '../components/ImageCropModal';
 
+const DR_CITIES = [
+  'Santo Domingo','Santiago de los Caballeros','La Romana','San Pedro de Macorís',
+  'San Francisco de Macorís','La Vega','San Cristóbal','Puerto Plata','Higüey',
+  'Barahona','Moca','Bonao','Azua','Cotui','Monte Plata','Nagua','Samaná',
+  'Hato Mayor','El Seibo','Neiba','Bani','Pedernales','Dajabón','Monte Cristi',
+  'Esperanza','Neyba','Constanza','Jarabacoa','Cabrera','Sosúa','Cabarete',
+  'Las Terrenas','Bávaro','Punta Cana','Cap Cana','Uvero Alto','Juan Dolio',
+  'Boca Chica','Bayahíbe','Casa de Campo',
+];
+
 const PROPERTY_TYPES = ['APARTMENT','HOUSE','VILLA','LAND','COMMERCIAL','OFFICE'];
 const PROPERTY_TYPE_LABELS: Record<string,string> = {
   APARTMENT:'Apartamento', HOUSE:'Casa', VILLA:'Villa',
@@ -401,7 +411,17 @@ export default function EditPropertyPage() {
           <div className="card p-6 space-y-5">
             <p className="font-heading text-base font-bold text-slate-900 dark:text-white">Ubicación</p>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="label-field">Ciudad</label><input type="text" value={city} onChange={e => setCity(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))} required className="input-field" /></div>
+              <div>
+                <label className="label-field">Ciudad</label>
+                <input
+                  type="text" list="dr-cities-edit" value={city}
+                  onChange={e => setCity(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))}
+                  required className="input-field"
+                />
+                <datalist id="dr-cities-edit">
+                  {DR_CITIES.map(c => <option key={c} value={c} />)}
+                </datalist>
+              </div>
               <div><label className="label-field">Sector</label><input type="text" value={neighborhood} onChange={e => setNeighborhood(e.target.value.replace(/[@#*^|\\<>~`]/g, ''))} className="input-field" /></div>
             </div>
             <div><label className="label-field">Dirección</label><input type="text" value={street} onChange={e => setStreet(e.target.value)} className="input-field" /></div>

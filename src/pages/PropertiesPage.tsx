@@ -8,6 +8,16 @@ import type { Property } from '../data/properties';
 // Backend enum values — must match what the API stores
 const PROPERTY_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'LAND', 'COMMERCIAL', 'OFFICE'] as const;
 
+function formatWithCommas(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('en-US');
+}
+
+function stripCommas(formatted: string): string {
+  return formatted.replace(/,/g, '');
+}
+
 const PropertiesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -20,6 +30,7 @@ const PropertiesPage = () => {
   const [cityFilter, setCityFilter] = useState(searchParams.get('city') ?? '');
   const [minPrice, setMinPrice]     = useState(searchParams.get('minPrice') ?? '');
   const [maxPrice, setMaxPrice]     = useState(searchParams.get('maxPrice') ?? '');
+  const [priceCurrency, setPriceCurrency] = useState<'DOP' | 'USD'>('DOP');
   const [sortBy, setSortBy]         = useState(searchParams.get('sort') ?? 'newest');
 
   const [properties, setProperties] = useState<Property[]>([]);
@@ -82,6 +93,7 @@ const PropertiesPage = () => {
     setCityFilter('');
     setMinPrice('');
     setMaxPrice('');
+    setPriceCurrency('DOP');
     setSortBy('newest');
   }
 
@@ -153,17 +165,35 @@ const PropertiesPage = () => {
 
       {/* Price range + sort */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-card-dark">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-card-dark">
+          {/* Currency toggle */}
+          <div className="flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-600">
+            {(['DOP', 'USD'] as const).map((c) => (
+              <button
+                key={c}
+                onClick={() => setPriceCurrency(c)}
+                className={`px-2 py-0.5 text-xs font-semibold transition-colors ${
+                  priceCurrency === c
+                    ? 'bg-brand-600 text-white'
+                    : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'
+                }`}
+              >
+                {c === 'DOP' ? 'RD$' : 'US$'}
+              </button>
+            ))}
+          </div>
           <span className="text-xs text-slate-400">Precio</span>
           <input
-            type="number" placeholder="Mín" value={minPrice} step={1000} min={0}
-            onChange={e => setMinPrice(e.target.value)}
+            type="text" inputMode="numeric" placeholder="Mín"
+            value={minPrice ? formatWithCommas(minPrice) : ''}
+            onChange={e => setMinPrice(stripCommas(e.target.value))}
             className="w-24 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 dark:text-slate-300"
           />
           <span className="text-slate-300">—</span>
           <input
-            type="number" placeholder="Máx" value={maxPrice} step={1000} min={0}
-            onChange={e => setMaxPrice(e.target.value)}
+            type="text" inputMode="numeric" placeholder="Máx"
+            value={maxPrice ? formatWithCommas(maxPrice) : ''}
+            onChange={e => setMaxPrice(stripCommas(e.target.value))}
             className="w-24 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300 dark:text-slate-300"
           />
         </div>

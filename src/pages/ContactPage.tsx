@@ -57,7 +57,7 @@ const ContactPage = () => {
               <div className="mt-6 flex flex-col items-center rounded-2xl bg-emerald-50 py-10 text-center dark:bg-emerald-950">
                 <span className="material-symbols-outlined text-5xl text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                 <h3 className="mt-4 font-heading text-lg font-bold text-emerald-700 dark:text-emerald-300">¡Mensaje enviado!</h3>
-                <p className="mt-2 max-w-xs text-sm text-emerald-600 dark:text-emerald-400">Nos pondremos en contacto contigo en las próximas horas.</p>
+                <p className="mt-2 max-w-xs text-sm text-emerald-600 dark:text-emerald-400">Te responderemos por correo electrónico a la brevedad posible.</p>
                 <button onClick={() => setSent(false)} className="btn-secondary mt-6">Enviar otro mensaje</button>
               </div>
             ) : (
@@ -91,7 +91,7 @@ const ContactPage = () => {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Mensaje</label>
-                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} placeholder="Cuéntanos más sobre lo que buscas..." required className="input-field resize-none" />
+                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} placeholder="Cuéntanos más sobre en qué te podemos ayudar..." required className="input-field resize-none" />
                 </div>
                 <button type="submit" disabled={isLoading} className="btn-primary w-full justify-center py-3.5 text-base disabled:opacity-60">
                   {isLoading ? (

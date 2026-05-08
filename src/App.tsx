@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 import MainLayout from './layouts/MainLayout';
 // Critical-path pages — loaded eagerly so the hero renders without an extra round-trip
 import HomePage  from './pages/HomePage';
@@ -23,8 +24,8 @@ const NotFoundPage        = lazy(() => import('./pages/NotFoundPage'));
 
 function PageLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+    <div className="fixed top-0 left-0 right-0 z-[9999] h-1 overflow-hidden bg-brand-100 dark:bg-brand-950">
+      <div className="h-full animate-[loading-bar_1.5s_ease-in-out_infinite] bg-brand-600" />
     </div>
   );
 }
@@ -33,6 +34,7 @@ function App() {
   return (
     <ThemeProvider>
     <AuthProvider>
+    <FavoritesProvider>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Auth routes — sin layout principal */}
@@ -59,6 +61,7 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+    </FavoritesProvider>
     </AuthProvider>
     </ThemeProvider>
   );

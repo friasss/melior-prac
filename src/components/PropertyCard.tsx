@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { type Property, formatPrice } from '../data/properties';
-import { toggleFavorite } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useFavorites } from '../context/FavoritesContext';
 import LoginPromptModal from './LoginPromptModal';
 
 export const PROPERTY_TYPE_LABELS: Record<string, string> = {
@@ -18,8 +18,9 @@ interface PropertyCardProps {
 const PropertyCard = ({ property, variant = 'default' }: PropertyCardProps) => {
   const isFeatured = variant === 'featured';
   const { isAuthenticated } = useAuth();
+  const { isFavorited, toggle } = useFavorites();
   const navigate = useNavigate();
-  const [fav, setFav]             = useState(false);
+  const fav = isFavorited(property.id);
   const [favLoading, setFavLoading] = useState(false);
   const [imgError, setImgError]   = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -30,8 +31,7 @@ const PropertyCard = ({ property, variant = 'default' }: PropertyCardProps) => {
     if (!isAuthenticated) { setShowPrompt(true); return; }
     setFavLoading(true);
     try {
-      const result = await toggleFavorite(property.id);
-      setFav(result);
+      await toggle(property.id);
     } catch { /* ignore */ }
     finally { setFavLoading(false); }
   }

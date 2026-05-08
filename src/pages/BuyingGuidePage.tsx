@@ -11,7 +11,7 @@ const steps = [
     tips: [
       'Filtra por precio, tipo de propiedad y zona',
       'Guarda tus favoritas para comparar después',
-      'Revisa las fotos y el mapa de ubicación',
+      'Revisa las fotos de la propiedad',
     ],
   },
   {
@@ -21,7 +21,6 @@ const steps = [
     description:
       'Cada propiedad en Melior tiene un agente certificado detrás. Con un solo click puedes enviarle un mensaje, agendar una visita o contactarlo directamente por WhatsApp.',
     tips: [
-      'El agente responde en menos de 24 horas',
       'Puedes agendar una visita presencial o virtual',
       'Consulta sin compromiso — es totalmente gratis',
     ],
@@ -147,18 +146,18 @@ const MortgageCalculator = () => {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-3 rounded-2xl bg-brand-50 p-5 dark:bg-brand-950/40">
-            <div className="text-center">
+          <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-brand-50 p-5 dark:bg-brand-950/40 sm:grid-cols-3">
+            <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Cuota mensual</p>
-              <p className="mt-1 font-heading text-xl font-extrabold text-brand-700 dark:text-brand-300">{formatRD(monthly)}</p>
+              <p className="font-heading text-lg font-extrabold text-brand-700 dark:text-brand-300 sm:mt-1 sm:text-xl">{formatRD(monthly)}</p>
             </div>
-            <div className="text-center">
+            <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Monto préstamo</p>
-              <p className="mt-1 font-heading text-xl font-extrabold text-slate-700 dark:text-slate-300">{formatRD(loanAmt)}</p>
+              <p className="font-heading text-lg font-extrabold text-slate-700 dark:text-slate-300 sm:mt-1 sm:text-xl">{formatRD(loanAmt)}</p>
             </div>
-            <div className="text-center">
+            <div className="flex items-center justify-between gap-2 sm:block sm:text-center">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total intereses</p>
-              <p className="mt-1 font-heading text-xl font-extrabold text-slate-700 dark:text-slate-300">{formatRD(totalInterest)}</p>
+              <p className="font-heading text-lg font-extrabold text-slate-700 dark:text-slate-300 sm:mt-1 sm:text-xl">{formatRD(totalInterest)}</p>
             </div>
           </div>
           <p className="mt-3 text-center text-xs text-slate-400">

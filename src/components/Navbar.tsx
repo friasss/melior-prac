@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { fetchUnreadCount } from '../services/api';
 
 const navLinks = [
-  { to: '/', label: 'Inicio' },
-  { to: '/propiedades', label: 'Propiedades' },
-  { to: '/guia-de-compra', label: 'Guía de Compra' },
-  { to: '/contacto', label: 'Contacto' },
+  { to: '/', label: 'Inicio', prefetch: () => {} },
+  { to: '/propiedades', label: 'Propiedades', prefetch: () => import('../pages/PropertiesPage') },
+  { to: '/guia-de-compra', label: 'Guía de Compra', prefetch: () => import('../pages/BuyingGuidePage') },
+  { to: '/contacto', label: 'Contacto', prefetch: () => import('../pages/ContactPage') },
 ];
 
 const Navbar = () => {
@@ -90,6 +90,7 @@ const Navbar = () => {
               const isActive = location.pathname === link.to;
               return (
                 <Link key={link.to} to={link.to}
+                  onMouseEnter={link.prefetch}
                   className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'

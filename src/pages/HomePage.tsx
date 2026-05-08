@@ -14,12 +14,12 @@ const stats = [
 ];
 
 const categories = [
-  { icon: 'villa',      label: 'Villas',        count: 42,  type: 'VILLA',       color: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
-  { icon: 'apartment',  label: 'Apartamentos',  count: 128, type: 'APARTMENT',   color: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400' },
-  { icon: 'house',      label: 'Casas',         count: 85,  type: 'HOUSE',       color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
-  { icon: 'domain',     label: 'Comerciales',   count: 23,  type: 'COMMERCIAL',  color: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400' },
-  { icon: 'landscape',  label: 'Terrenos',      count: 56,  type: 'LAND',        color: 'bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
-  { icon: 'store',      label: 'Oficinas',      count: 34,  type: 'OFFICE',      color: 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
+  { icon: 'villa',      label: 'Villas',        type: 'VILLA',       color: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  { icon: 'apartment',  label: 'Apartamentos',  type: 'APARTMENT',   color: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400' },
+  { icon: 'house',      label: 'Casas',         type: 'HOUSE',       color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
+  { icon: 'domain',     label: 'Comerciales',   type: 'COMMERCIAL',  color: 'bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400' },
+  { icon: 'landscape',  label: 'Terrenos',      type: 'LAND',        color: 'bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
+  { icon: 'store',      label: 'Oficinas',      type: 'OFFICE',      color: 'bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
 ];
 
 const testimonials = [
@@ -171,10 +171,7 @@ const HomePage = () => {
               <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${cat.color} transition-transform group-hover:scale-110`}>
                 <span className="material-symbols-outlined text-2xl">{cat.icon}</span>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{cat.label}</p>
-                <p className="text-xs text-slate-400">{cat.count} propiedades</p>
-              </div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{cat.label}</p>
             </Link>
           ))}
         </div>
